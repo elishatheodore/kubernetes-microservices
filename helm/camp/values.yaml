@@ -1,0 +1,341 @@
+# Default values for CAMP Helm chart
+# This is a YAML-formatted file
+
+# Global configuration
+global:
+  imageRegistry: ghcr.io
+  imagePullSecrets: []
+  storageClass: default
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: elishatheodore/kubernetes-microservices
+  pullPolicy: IfNotPresent
+  tag: "latest"
+  # For production, consider using specific tags
+  # tag: "1.0.0"
+
+# Replica configuration
+replicaCount:
+  backend: 2
+  web: 2
+  auth: 2
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod security context
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+  hosts:
+    - host: camp.yourdomain.com
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: Prefix
+          service: backend
+        - path: /auth(/|$)(.*)
+          pathType: Prefix
+          service: auth
+        - path: /(.*)
+          pathType: Prefix
+          service: web
+  tls:
+    - secretName: camp-tls
+      hosts:
+        - camp.yourdomain.com
+
+# Backend service configuration
+backend:
+  name: backend
+  image:
+    repository: elishatheodore/kubernetes-microservices/camp-backend
+  service:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  livenessProbe:
+    httpGet:
+      path: /test
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+  persistence:
+    uploads:
+      enabled: true
+      storageClass: default
+      accessMode: ReadWriteOnce
+      size: 10Gi
+      mountPath: /app/uploads
+    database:
+      enabled: true
+      storageClass: default
+      accessMode: ReadWriteOnce
+      size: 1Gi
+      mountPath: /app/camp.db
+      subPath: camp.db
+
+# Web frontend configuration
+web:
+  name: web
+  image:
+    repository: elishatheodore/kubernetes-microservices/camp-web
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 3004
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Auth frontend configuration
+auth:
+  name: auth
+  image:
+    repository: elishatheodore/kubernetes-microservices/camp-auth
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Application configuration
+config:
+  databaseUrl: "sqlite:///./camp.db"
+  debug: false
+  logLevel: info
+  apiV1Prefix: "/api/v1"
+  appName: "Cloud Asset Management Platform"
+  appVersion: "1.0.0"
+  storageType: local
+  localStoragePath: "./uploads"
+  maxFileSize: "52428800"
+  corsOrigins: "http://localhost:3004,http://localhost:3000"
+  pythonUnbuffered: "1"
+  pythonpath: "/app"
+
+# Secrets configuration
+secrets:
+  secretKey: "your-secret-key-change-in-production"
+  jwtSecret: "your-jwt-secret-change-in-production"
+  defaultPassword: "admin123"
+
+# Resource quotas
+resourceQuota:
+  enabled: true
+  requests:
+    cpu: "2"
+    memory: 4Gi
+  limits:
+    cpu: "4"
+    memory: 8Gi
+  persistentvolumeclaims: "10"
+  pods: "20"
+  services: "10"
+  secrets: "10"
+  configmaps: "10"
+
+# Limit ranges
+limitRange:
+  enabled: true
+  default:
+    cpu: "500m"
+    memory: "512Mi"
+  defaultRequest:
+    cpu: "100m"
+    memory: "128Mi"
+  max:
+    cpu: "2"
+    memory: "4Gi"
+  min:
+    cpu: "50m"
+    memory: "64Mi"
+  maxStorage: "10Gi"
+  minStorage: "100Mi"
+
+# Network policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      - podSelector:
+          matchLabels:
+            app: camp
+  egress:
+    - to:
+      - podSelector:
+          matchLabels:
+            app: camp
+    - to: []
+      ports:
+      - protocol: TCP
+        port: 53
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 443
+      - protocol: TCP
+        port: 80
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+  podMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Extra labels
+commonLabels: {}
+  # app.kubernetes.io/name: camp
+  # app.kubernetes.io/instance: camp-release
+
+# Extra annotations
+commonAnnotations: {}
+  # config.kubernetes.io/origin: helm-chart
+  # config.kubernetes.io/version: v1.0.0
+
+# Pod annotations
+podAnnotations: {}
+
+# Service annotations
+serviceAnnotations: {}
+
+# Additional volumes
+extraVolumes: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Init containers
+initContainers: []
+
+# Sidecar containers
+sidecars: []
+
+# Environment variables from config maps or secrets
+envFrom: []
+
+# Additional environment variables
+extraEnv: []

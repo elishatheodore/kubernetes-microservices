@@ -1,0 +1,184 @@
+# Development values for CAMP Helm chart
+# Override defaults for development deployment
+
+# Global configuration
+global:
+  imageRegistry: ghcr.io
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: elishatheodore/kubernetes-microservices
+  pullPolicy: IfNotPresent
+  tag: "latest"  # Use latest for development
+
+# Replica configuration for development (lower resource usage)
+replicaCount:
+  backend: 1
+  web: 1
+  auth: 1
+
+# Ingress configuration for development
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  hosts:
+    - host: camp-dev.yourdomain.com
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: Prefix
+          service: backend
+        - path: /auth(/|$)(.*)
+          pathType: Prefix
+          service: auth
+        - path: /(.*)
+          pathType: Prefix
+          service: web
+  tls: []  # No TLS for development
+
+# Backend service configuration with lower resources
+backend:
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  autoscaling:
+    enabled: false  # No autoscaling for development
+  persistence:
+    uploads:
+      enabled: true
+      storageClass: default
+      accessMode: ReadWriteOnce
+      size: 5Gi
+      mountPath: /app/uploads
+    database:
+      enabled: true
+      storageClass: default
+      accessMode: ReadWriteOnce
+      size: 1Gi
+      mountPath: /app/camp.db
+      subPath: camp.db
+
+# Web frontend configuration
+web:
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+  autoscaling:
+    enabled: false  # No autoscaling for development
+
+# Auth frontend configuration
+auth:
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
+  autoscaling:
+    enabled: false  # No autoscaling for development
+
+# Development configuration
+config:
+  databaseUrl: "sqlite:///./camp.db"
+  debug: true  # Enable debug for development
+  logLevel: debug
+  apiV1Prefix: "/api/v1"
+  appName: "Cloud Asset Management Platform (Dev)"
+  appVersion: "1.0.0-dev"
+  storageType: local
+  localStoragePath: "./uploads"
+  maxFileSize: "52428800"  # 50MB
+  corsOrigins: "http://localhost:3004,http://localhost:3000,http://camp-dev.yourdomain.com"
+  pythonUnbuffered: "1"
+  pythonpath: "/app"
+
+# Development secrets
+secrets:
+  secretKey: "dev-secret-key"
+  jwtSecret: "dev-jwt-secret"
+  defaultPassword: "admin123"
+
+# Resource quotas for development (smaller limits)
+resourceQuota:
+  enabled: true
+  requests:
+    cpu: "1"
+    memory: 2Gi
+  limits:
+    cpu: "2"
+    memory: 4Gi
+  persistentvolumeclaims: "5"
+  pods: "10"
+  services: "5"
+  secrets: "5"
+  configmaps: "5"
+
+# Limit ranges for development
+limitRange:
+  enabled: true
+  default:
+    cpu: "200m"
+    memory: "256Mi"
+  defaultRequest:
+    cpu: "50m"
+    memory: "64Mi"
+  max:
+    cpu: "1"
+    memory: "2Gi"
+  min:
+    cpu: "25m"
+    memory: "32Mi"
+  maxStorage: "10Gi"
+  minStorage: "100Mi"
+
+# Relaxed network policy for development
+networkPolicy:
+  enabled: false  # Disabled for easier debugging
+
+# Basic monitoring for development
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false  # No service monitoring for dev
+  podMonitor:
+    enabled: false  # No pod monitoring for dev
+
+# No node selector for development
+nodeSelector: {}
+
+# No tolerations for development
+tolerations: []
+
+# No affinity rules for development
+affinity: {}
+
+# Additional labels for development
+commonLabels:
+  environment: development
+  managed-by: helm
+  tier: application
+
+# Additional annotations for development
+commonAnnotations:
+  config.kubernetes.io/origin: helm-chart
+  config.kubernetes.io/version: v1.0.0-dev
+
+# Pod annotations for development
+podAnnotations:
+  debug: "true"
+
+# Service annotations for development
+serviceAnnotations: {}

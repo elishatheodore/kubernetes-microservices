@@ -1,0 +1,257 @@
+# Production values for CAMP Helm chart
+# Override defaults for production deployment
+
+# Global configuration
+global:
+  imageRegistry: ghcr.io
+  imagePullSecrets:
+    - name: ghcr-secret
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: elishatheodore/kubernetes-microservices
+  pullPolicy: IfNotPresent
+  tag: "v1.0.0"  # Use specific version for production
+
+# Replica configuration for high availability
+replicaCount:
+  backend: 3
+  web: 3
+  auth: 2
+
+# Ingress configuration for production
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: "SecRuleEngine On"
+  hosts:
+    - host: camp.yourdomain.com
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: Prefix
+          service: backend
+        - path: /auth(/|$)(.*)
+          pathType: Prefix
+          service: auth
+        - path: /(.*)
+          pathType: Prefix
+          service: web
+  tls:
+    - secretName: camp-tls
+      hosts:
+        - camp.yourdomain.com
+
+# Backend service configuration with higher resources
+backend:
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  persistence:
+    uploads:
+      enabled: true
+      storageClass: premium-ssd
+      accessMode: ReadWriteOnce
+      size: 50Gi
+      mountPath: /app/uploads
+    database:
+      enabled: true
+      storageClass: premium-ssd
+      accessMode: ReadWriteOnce
+      size: 5Gi
+      mountPath: /app/camp.db
+      subPath: camp.db
+
+# Web frontend configuration
+web:
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+# Auth frontend configuration
+auth:
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# Production configuration
+config:
+  databaseUrl: "sqlite:///./camp.db"
+  debug: false
+  logLevel: warning
+  apiV1Prefix: "/api/v1"
+  appName: "Cloud Asset Management Platform"
+  appVersion: "1.0.0"
+  storageType: local
+  localStoragePath: "./uploads"
+  maxFileSize: "104857600"  # 100MB
+  corsOrigins: "https://camp.yourdomain.com"
+  pythonUnbuffered: "1"
+  pythonpath: "/app"
+
+# Production secrets (replace with actual values)
+secrets:
+  secretKey: "your-production-secret-key-change-this"
+  jwtSecret: "your-production-jwt-secret-change-this"
+  defaultPassword: "change-this-password"
+
+# Resource quotas for production
+resourceQuota:
+  enabled: true
+  requests:
+    cpu: "4"
+    memory: 8Gi
+  limits:
+    cpu: "8"
+    memory: 16Gi
+  persistentvolumeclaims: "20"
+  pods: "50"
+  services: "20"
+  secrets: "20"
+  configmaps: "20"
+
+# Limit ranges for production
+limitRange:
+  enabled: true
+  default:
+    cpu: "500m"
+    memory: "512Mi"
+  defaultRequest:
+    cpu: "100m"
+    memory: "128Mi"
+  max:
+    cpu: "4"
+    memory: "8Gi"
+  min:
+    cpu: "50m"
+    memory: "64Mi"
+  maxStorage: "100Gi"
+  minStorage: "1Gi"
+
+# Enhanced network policy for production
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      - podSelector:
+          matchLabels:
+            app: camp
+  egress:
+    - to:
+      - podSelector:
+          matchLabels:
+            app: camp
+    - to: []
+      ports:
+      - protocol: TCP
+        port: 53
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 443
+      - protocol: TCP
+        port: 80
+
+# Enhanced monitoring for production
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+  podMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+
+# Node selector for production (use dedicated nodes)
+nodeSelector:
+  node-type: application
+
+# Tolerations for production nodes
+tolerations:
+  - key: "application"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+
+# Affinity rules for production
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - camp
+        topologyKey: kubernetes.io/hostname
+
+# Additional labels for production
+commonLabels:
+  environment: production
+  managed-by: helm
+  tier: application
+  security-level: high
+
+# Additional annotations for production
+commonAnnotations:
+  config.kubernetes.io/origin: helm-chart
+  config.kubernetes.io/version: v1.0.0
+  security.scan: "required"
+  compliance: "sox-gdpr"
+
+# Pod annotations for production
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+# Service annotations for production
+serviceAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"

@@ -1,0 +1,48 @@
+{{/*
+Backend Uploads PVC
+*/}}
+{{- if and .Values.backend.persistence.uploads.enabled (gt (.Values.replicaCount.backend | int) 0) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "camp.backend.fullname" . }}-uploads
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "camp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.backend.name }}
+    type: uploads
+spec:
+  accessModes:
+    - {{ .Values.backend.persistence.uploads.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.backend.persistence.uploads.size }}
+  {{- if .Values.backend.persistence.uploads.storageClass }}
+  storageClassName: {{ .Values.backend.persistence.uploads.storageClass }}
+  {{- end }}
+{{- end }}
+
+{{/*
+Backend Database PVC
+*/}}
+{{- if and .Values.backend.persistence.database.enabled (gt (.Values.replicaCount.backend | int) 0) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "camp.backend.fullname" . }}-database
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "camp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.backend.name }}
+    type: database
+spec:
+  accessModes:
+    - {{ .Values.backend.persistence.database.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.backend.persistence.database.size }}
+  {{- if .Values.backend.persistence.database.storageClass }}
+  storageClassName: {{ .Values.backend.persistence.database.storageClass }}
+  {{- end }}
+{{- end }}

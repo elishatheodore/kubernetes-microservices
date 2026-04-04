@@ -1,0 +1,100 @@
+{{- if .Values.monitoring.enabled }}
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+{{/*
+Backend ServiceMonitor
+*/}}
+{{- if gt (.Values.replicaCount.backend | int) 0 }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "camp.backend.fullname" . }}-monitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "camp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.backend.name }}
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      {{- include "camp.backend.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    path: {{ .Values.monitoring.serviceMonitor.path }}
+    interval: {{ .Values.monitoring.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
+{{- end }}
+
+{{/*
+Web ServiceMonitor
+*/}}
+{{- if gt (.Values.replicaCount.web | int) 0 }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "camp.web.fullname" . }}-monitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "camp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.web.name }}
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      {{- include "camp.web.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    path: {{ .Values.monitoring.serviceMonitor.path }}
+    interval: {{ .Values.monitoring.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
+{{- end }}
+
+{{/*
+Auth ServiceMonitor
+*/}}
+{{- if gt (.Values.replicaCount.auth | int) 0 }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "camp.auth.fullname" . }}-monitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "camp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ .Values.auth.name }}
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      {{- include "camp.auth.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: http
+    path: {{ .Values.monitoring.serviceMonitor.path }}
+    interval: {{ .Values.monitoring.serviceMonitor.interval }}
+    scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.monitoring.podMonitor.enabled }}
+{{/*
+Pod Monitor
+*/}}
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "camp.fullname" . }}-pods
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "camp.labels" . | nindent 4 }}
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      {{- include "camp.selectorLabels" . | nindent 6 }}
+  podMetricsEndpoints:
+  - port: http
+    path: {{ .Values.monitoring.podMonitor.path }}
+    interval: {{ .Values.monitoring.podMonitor.interval }}
+    scrapeTimeout: {{ .Values.monitoring.podMonitor.scrapeTimeout }}
+{{- end }}
+{{- end }}

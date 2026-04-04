@@ -1,0 +1,35 @@
+CAMP (Cloud Asset Management Platform) has been deployed successfully!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get all {{ .Release.Name }}
+
+Access URLs:
+{{- if .Values.ingress.enabled }}
+{{- range .Values.ingress.hosts }}
+  https://{{ .host }}
+{{- end }}
+{{- else }}
+  Get the application URL by running these commands:
+{{- range .Values.ingress.hosts }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath='{.items[0].metadata.name}')
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath='{.spec.containers[0].ports[0].containerPort}')
+  echo "Visit http://127.0.0.1:8080 to use your application"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+{{- end }}
+{{- end }}
+
+{{- if contains "true" (toString .Values.monitoring.enabled) }}
+To access Prometheus monitoring:
+  $ kubectl port-forward svc/prometheus-server 9090:80 -n monitoring
+{{- end }}
+
+Default Credentials:
+  Username: admin
+  Password: {{ .Values.secrets.defaultPassword }}
+
+For more information on using CAMP, visit:
+  https://github.com/elishatheodore/kubernetes-microservices

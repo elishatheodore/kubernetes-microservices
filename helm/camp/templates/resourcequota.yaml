@@ -1,0 +1,52 @@
+{{- if .Values.resourceQuota.enabled }}
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ include "camp.fullname" . }}-resource-quota
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "camp.labels" . | nindent 4 }}
+spec:
+  hard:
+    requests.cpu: {{ .Values.resourceQuota.requests.cpu }}
+    requests.memory: {{ .Values.resourceQuota.requests.memory }}
+    limits.cpu: {{ .Values.resourceQuota.limits.cpu }}
+    limits.memory: {{ .Values.resourceQuota.limits.memory }}
+    persistentvolumeclaims: {{ .Values.resourceQuota.persistentvolumeclaims }}
+    pods: {{ .Values.resourceQuota.pods }}
+    services: {{ .Values.resourceQuota.services }}
+    secrets: {{ .Values.resourceQuota.secrets }}
+    configmaps: {{ .Values.resourceQuota.configmaps }}
+{{- end }}
+
+{{- if .Values.limitRange.enabled }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: {{ include "camp.fullname" . }}-limit-range
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "camp.labels" . | nindent 4 }}
+spec:
+  limits:
+  - default:
+      cpu: {{ .Values.limitRange.default.cpu }}
+      memory: {{ .Values.limitRange.default.memory }}
+    defaultRequest:
+      cpu: {{ .Values.limitRange.defaultRequest.cpu }}
+      memory: {{ .Values.limitRange.defaultRequest.memory }}
+    type: Container
+  - max:
+      cpu: {{ .Values.limitRange.max.cpu }}
+      memory: {{ .Values.limitRange.max.memory }}
+    min:
+      cpu: {{ .Values.limitRange.min.cpu }}
+      memory: {{ .Values.limitRange.min.memory }}
+    type: Container
+  - max:
+      storage: {{ .Values.limitRange.maxStorage }}
+    min:
+      storage: {{ .Values.limitRange.minStorage }}
+    type: PersistentVolumeClaim
+{{- end }}

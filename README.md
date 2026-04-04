@@ -64,12 +64,52 @@ kubernetes-microservices/
 ├── README.md                    # Main project documentation
 ├── DOCKER_README.md            # Docker-specific documentation
 ├── GHCR_SETUP.md               # GitHub Container Registry guide
+├── AKS_SETUP.md                # AKS deployment guide
 ├── docker-compose.yml          # Local Docker compose
 ├── docker-compose.ghcr.yml    # GHCR Docker compose
 ├── build.sh / build.bat        # Build scripts
 ├── restart.sh / restart.bat    # Restart scripts
 ├── push-to-ghcr.sh             # GHCR push script
 ├── setup-ghcr.sh               # GHCR setup script
+│
+├── helm/                       # Helm chart deployment
+│   ├── deploy-helm.sh          # Helm deployment script
+│   └── camp/
+│       ├── Chart.yaml          # Helm chart metadata
+│       ├── values.yaml         # Default values
+│       ├── values-dev.yaml     # Development values
+│       ├── values-prod.yaml    # Production values
+│       └── templates/          # Kubernetes templates
+│           ├── _helpers.tpl    # Template helpers
+│           ├── deployment.yaml # Deployments
+│           ├── service.yaml    # Services
+│           ├── ingress.yaml     # Ingress
+│           ├── configmap.yaml   # Config maps
+│           ├── secret.yaml      # Secrets
+│           ├── pvc.yaml        # Persistent volumes
+│           ├── hpa.yaml         # Autoscalers
+│           ├── resourcequota.yaml # Resource quotas
+│           ├── networkpolicy.yaml # Network policies
+│           ├── monitoring.yaml  # Monitoring
+│           ├── serviceaccount.yaml # Service accounts
+│           └── notes.txt       # Installation notes
+│
+├── k8s/                        # Raw Kubernetes manifests
+│   ├── deploy.sh                # AKS deployment script
+│   ├── cleanup.sh               # AKS cleanup script
+│   ├── namespace.yaml           # Namespace
+│   ├── configmap.yaml           # Configuration
+│   ├── secret.yaml              # Secrets
+│   ├── persistent-volumes.yaml  # Storage
+│   ├── backend-deployment.yaml  # Backend deployment
+│   ├── web-frontend-deployment.yaml # Web deployment
+│   ├── auth-frontend-deployment.yaml # Auth deployment
+│   ├── ingress.yaml             # Ingress
+│   ├── horizontal-pod-autoscaler.yaml # HPA
+│   ├── resource-quota.yaml      # Resource quotas
+│   ├── network-policy.yaml      # Network policies
+│   ├── monitoring.yaml          # Monitoring
+│   └── kustomization.yaml       # Kustomize config
 │
 ├── camp-backend/                # FastAPI Python Backend
 │   ├── README.md               # Backend documentation
@@ -287,6 +327,137 @@ docker-compose down
 # Rebuild with no cache
 docker-compose build --no-cache
 ```
+
+## 🎯 Helm Chart Deployment
+
+### Prerequisites
+- **Helm 3.x** - Package manager for Kubernetes
+- **kubectl** - Kubernetes command line tool
+- **Kubernetes cluster** - AKS, EKS, GKE, or local cluster
+
+### Quick Helm Deployment
+```bash
+# Navigate to helm directory
+cd helm
+
+# Deploy with default values
+./deploy-helm.sh
+
+# Deploy with development values
+./deploy-helm.sh -f values-dev.yaml
+
+# Deploy with production values
+./deploy-helm.sh -f values-prod.yaml
+
+# Dry run to preview deployment
+./deploy-helm.sh --dry-run
+
+# Uninstall deployment
+./deploy-helm.sh --uninstall
+```
+
+### Manual Helm Commands
+```bash
+# Add Helm repositories
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo add jetstack https://charts.jetstack.io
+helm repo update
+
+# Install the chart
+helm install camp-release ./helm/camp \
+  --namespace camp \
+  --create-namespace \
+  --values ./helm/camp/values.yaml
+
+# Upgrade the chart
+helm upgrade camp-release ./helm/camp \
+  --namespace camp \
+  --values ./helm/camp/values.yaml
+
+# Uninstall the chart
+helm uninstall camp-release --namespace camp
+```
+
+### Helm Chart Structure
+```
+helm/camp/
+├── Chart.yaml              # Chart metadata
+├── values.yaml             # Default values
+├── values-dev.yaml         # Development values
+├── values-prod.yaml        # Production values
+└── templates/
+    ├── _helpers.tpl        # Template helpers
+    ├── deployment.yaml     # Application deployments
+    ├── service.yaml        # Service definitions
+    ├── ingress.yaml        # Ingress configuration
+    ├── configmap.yaml      # Configuration maps
+    ├── secret.yaml         # Secrets
+    ├── pvc.yaml           # Persistent volumes
+    ├── hpa.yaml           # Horizontal pod autoscalers
+    ├── resourcequota.yaml  # Resource quotas
+    ├── networkpolicy.yaml  # Network policies
+    ├── monitoring.yaml     # Monitoring setup
+    ├── serviceaccount.yaml # Service accounts
+    └── notes.txt          # Installation notes
+```
+
+### Helm Configuration Options
+
+#### Environment-Specific Values
+- **Development**: `values-dev.yaml` - Single replicas, debug enabled, minimal resources
+- **Production**: `values-prod.yaml` - Multiple replicas, high resources, security hardened
+- **Default**: `values.yaml` - Balanced configuration for general use
+
+#### Customization Examples
+```yaml
+# Custom values file (custom-values.yaml)
+replicaCount:
+  backend: 5
+  web: 3
+  auth: 2
+
+ingress:
+  hosts:
+    - host: camp.mycompany.com
+      paths:
+        - path: /api(/|$)(.*)
+          service: backend
+        - path: /auth(/|$)(.*)
+          service: auth
+        - path: /(.*)
+          service: web
+
+backend:
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+secrets:
+  secretKey: "your-custom-secret-key"
+  jwtSecret: "your-custom-jwt-secret"
+```
+
+#### Deploy with Custom Values
+```bash
+helm install camp-release ./helm/camp \
+  --namespace camp \
+  --create-namespace \
+  --values ./helm/camp/values.yaml \
+  --values custom-values.yaml
+```
+
+### Helm Features
+- **Template-based Configuration**: Flexible YAML templating
+- **Environment Management**: Separate values for dev/prod
+- **Dependency Management**: Chart dependencies
+- **Rollback Support**: Easy rollback to previous versions
+- **Release Management**: Multiple releases per cluster
+- **Hooks Support**: Pre/post install/upgrade hooks
+- **Testing**: Built-in chart testing framework
 
 ## 🚀 GitHub Container Registry (GHCR)
 
@@ -520,13 +691,17 @@ curl http://localhost:8000/health
 - ✅ Basic authentication
 - ✅ Docker containerization
 - ✅ GitHub Container Registry integration
+- ✅ Helm chart packaging
+- ✅ Kubernetes manifests
+- ✅ Multi-environment support
 
 ### Phase 2: Production Ready 🔄
-- 🔄 PostgreSQL database
-- 🔄 Docker Compose production configs
-- 🔄 Nginx reverse proxy
-- 🔄 Environment-based configuration
+- 🔄 PostgreSQL database integration
 - 🔄 CI/CD pipelines
+- 🔄 Automated testing
+- 🔄 Monitoring and alerting
+- 🔄 Backup and recovery
+- 🔄 Multi-region deployment
 
 ### Phase 3: Cloud Native 📋
 - 📋 Azure Container Instances
@@ -534,6 +709,21 @@ curl http://localhost:8000/health
 - 📋 Azure SQL Database
 - 📋 Application Gateway
 - 📋 Front Door CDN
+- 📋 GitOps with ArgoCD
+
+## 🎯 Deployment Options Summary
+
+| Method | Best For | Complexity | Scalability | Production Ready |
+|--------|----------|------------|-------------|------------------|
+| **Local Development** | Testing & Development | ⭐ | ⭐ | ⭐ |
+| **Docker Compose** | Small deployments | ⭐⭐ | ⭐⭐ | ⭐⭐ |
+| **Raw Kubernetes** | Custom deployments | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Helm Chart** | Production deployments | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+
+### Recommended Deployment Path
+1. **Development**: Local Python servers → Docker Compose
+2. **Staging**: Docker Compose → Helm with dev values
+3. **Production**: Helm with prod values → GitOps automation
 
 ## 🛠 Development & Operations
 
@@ -548,6 +738,44 @@ docker-compose down                     # Stop all services
 # Build and push
 bash push-to-ghcr.sh                   # Push to GHCR
 bash setup-ghcr.sh                     # Interactive setup
+```
+
+### Helm Development
+```bash
+# Navigate to helm directory
+cd helm
+
+# Deploy with different environments
+./deploy-helm.sh                         # Default deployment
+./deploy-helm.sh -f values-dev.yaml     # Development
+./deploy-helm.sh -f values-prod.yaml    # Production
+
+# Helm operations
+helm list -n camp                        # List releases
+helm status camp-release -n camp         # Release status
+helm history camp-release -n camp        # Release history
+helm rollback camp-release 1 -n camp     # Rollback to previous version
+
+# Debug and troubleshoot
+helm template camp-release ./camp --values values.yaml  # Preview manifests
+helm get values camp-release -n camp      # Get current values
+helm get all camp-release -n camp         # Get all release info
+```
+
+### Raw Kubernetes Development
+```bash
+# Navigate to k8s directory
+cd k8s
+
+# Deploy to AKS
+./deploy.sh                             # Full AKS deployment
+./cleanup.sh                            # Cleanup deployment
+
+# Manual operations
+kubectl apply -k .                       # Apply with Kustomize
+kubectl get pods -n camp                 # View pods
+kubectl logs -f deployment/camp-backend -n camp  # View logs
+kubectl scale deployment camp-backend --replicas=3 -n camp  # Scale deployment
 ```
 
 ### Local Development
@@ -575,6 +803,11 @@ curl http://localhost:8000/test
 
 # Container health
 docker-compose ps
+
+# Kubernetes health
+kubectl get pods -n camp
+kubectl get services -n camp
+kubectl get ingress -n camp
 ```
 
 ## 📚 Documentation
@@ -582,6 +815,8 @@ docker-compose ps
 - **Main Documentation**: This README.md
 - **Docker Guide**: `DOCKER_README.md`
 - **GHCR Setup**: `GHCR_SETUP.md`
+- **AKS Deployment**: `AKS_SETUP.md`
+- **Helm Chart**: `HELM_README.md`
 - **Backend API**: `http://localhost:8000/docs`
 - **Frontend Guide**: `camp-web-frontend/README.md`
 - **Auth System**: `camp-auth-frontend/README.md`
@@ -589,6 +824,7 @@ docker-compose ps
 
 ## 🔄 Integration Flow
 
+### Docker Integration Flow
 1. **Container Startup**: Docker Compose orchestrates all services
 2. **User Access**: Auth frontend validates credentials (Port 3000)
 3. **Session Creation**: Secure session token stored
@@ -597,6 +833,30 @@ docker-compose ps
 6. **File Operations**: Upload, list, rename, delete
 7. **Session Management**: Timeout and cleanup
 8. **Data Persistence**: Volume mounts for database and uploads
+
+### Helm/Kubernetes Integration Flow
+1. **Chart Installation**: Helm creates all Kubernetes resources
+2. **Pod Deployment**: Kubernetes schedules pods across nodes
+3. **Service Exposure**: Services expose pods internally
+4. **Ingress Configuration**: External access through load balancer
+5. **Auto-scaling**: HPA adjusts pod count based on metrics
+6. **Health Monitoring**: Probes and monitoring ensure availability
+7. **Data Persistence**: PVCs provide persistent storage
+8. **Network Security**: Network policies control traffic flow
+
+### Deployment Options Comparison
+
+| Feature | Docker Compose | Helm/Kubernetes |
+|---------|----------------|-----------------|
+| **Ease of Use** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| **Scalability** | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Production Ready** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Auto-scaling** | ❌ | ✅ |
+| **Health Monitoring** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Rolling Updates** | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Resource Management** | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Multi-environment** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **CI/CD Integration** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
 
 ## 🎯 Production Considerations
 
@@ -651,9 +911,10 @@ For support and questions:
 
 ---
 
-**Built with ❤️ using FastAPI, Docker, HTML, CSS, JavaScript, and modern security practices**
+**Built with ❤️ using FastAPI, Docker, Helm, Kubernetes, HTML, CSS, JavaScript, and modern security practices**
 
 **Version**: 1.0.0  
 **Last Updated**: 2026-04-04  
-**Status**: Production Ready (Docker Containerized)  
-**Container Registry**: GitHub Container Registry (GHCR)
+**Status**: Production Ready (Docker + Helm + Kubernetes)  
+**Container Registry**: GitHub Container Registry (GHCR)  
+**Package Manager**: Helm Chart Available

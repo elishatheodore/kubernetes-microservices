@@ -1,0 +1,23 @@
+apiVersion: v2
+name: camp
+description: Cloud Asset Management Platform - A comprehensive full-stack application for secure cloud asset management
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/elishatheodore/kubernetes-microservices
+sources:
+  - https://github.com/elishatheodore/kubernetes-microservices
+maintainers:
+  - name: elishatheodore
+    email: elisha.theodore@example.com
+keywords:
+  - asset-management
+  - file-upload
+  - authentication
+  - fastapi
+  - docker
+  - kubernetes
+annotations:
+  category: Application
+  licenses: MIT
+dependencies: []
