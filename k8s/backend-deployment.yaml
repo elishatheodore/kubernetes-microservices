@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camp-backend
+  namespace: camp
+  labels:
+    app: camp
+    component: backend
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: camp
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: camp
+        component: backend
+        version: v1
+    spec:
+      containers:
+      - name: camp-backend
+        image: ghcr.io/elishatheodore/kubernetes-microservices/camp-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: camp-config
+              key: DATABASE_URL
+        - name: DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: camp-config
+              key: DEBUG
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: camp-config
+              key: LOG_LEVEL
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: camp-secrets
+              key: SECRET_KEY
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: camp-secrets
+              key: JWT_SECRET
+        - name: PYTHONUNBUFFERED
+          valueFrom:
+            configMapKeyRef:
+              name: camp-config
+              key: PYTHONUNBUFFERED
+        - name: PYTHONPATH
+          valueFrom:
+            configMapKeyRef:
+              name: camp-config
+              key: PYTHONPATH
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /test
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: uploads-storage
+          mountPath: /app/uploads
+        - name: database-storage
+          mountPath: /app/camp.db
+          subPath: camp.db
+      volumes:
+      - name: uploads-storage
+        persistentVolumeClaim:
+          claimName: camp-uploads-pvc
+      - name: database-storage
+        persistentVolumeClaim:
+          claimName: camp-database-pvc
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: camp-backend-service
+  namespace: camp
+  labels:
+    app: camp
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: camp
+    component: backend

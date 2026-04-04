@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: camp-uploads-pvc
+  namespace: camp
+  labels:
+    app: camp
+    component: storage
+    type: uploads
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: default
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: camp-database-pvc
+  namespace: camp
+  labels:
+    app: camp
+    component: storage
+    type: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: default

@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: camp-backend-monitor
+  namespace: camp
+  labels:
+    app: camp
+    component: backend
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: camp
+      component: backend
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: camp-web-monitor
+  namespace: camp
+  labels:
+    app: camp
+    component: web-frontend
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: camp
+      component: web-frontend
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: camp-auth-monitor
+  namespace: camp
+  labels:
+    app: camp
+    component: auth-frontend
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: camp
+      component: auth-frontend
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+---
+apiVersion: v1
+kind: PodMonitor
+metadata:
+  name: camp-pods
+  namespace: camp
+  labels:
+    app: camp
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: camp
+  podMetricsEndpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s

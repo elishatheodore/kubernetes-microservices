@@ -1,0 +1,69 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: camp-kustomization
+  namespace: camp
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - persistent-volumes.yaml
+  - backend-deployment.yaml
+  - web-frontend-deployment.yaml
+  - auth-frontend-deployment.yaml
+  - ingress.yaml
+  - horizontal-pod-autoscaler.yaml
+  - resource-quota.yaml
+  - network-policy.yaml
+
+commonLabels:
+  app: camp
+  environment: production
+  managed-by: kustomize
+
+commonAnnotations:
+  config.kubernetes.io/origin: camp-platform
+  config.kubernetes.io/version: v1.0.0
+
+images:
+  - name: ghcr.io/elishatheodore/kubernetes-microservices/camp-backend
+    newTag: latest
+  - name: ghcr.io/elishatheodore/kubernetes-microservices/camp-web
+    newTag: latest
+  - name: ghcr.io/elishatheodore/kubernetes-microservices/camp-auth
+    newTag: latest
+
+replicas:
+  - name: camp-backend
+    count: 2
+  - name: camp-web
+    count: 2
+  - name: camp-auth
+    count: 2
+
+patchesStrategicMerge:
+  - |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: camp-backend
+    spec:
+      template:
+        spec:
+          containers:
+          - name: camp-backend
+            env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP

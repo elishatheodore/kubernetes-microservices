@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: camp
+  labels:
+    name: camp
+    app: cloud-asset-management-platform
+    environment: production
