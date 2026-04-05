@@ -1,0 +1,201 @@
+# Multi-Cluster Configuration
+# This file defines all available clusters and their configurations
+
+clusters:
+  # Local development cluster
+  local-dev:
+    name: local-dev
+    type: local
+    provider: minikube
+    region: local
+    kubeconfig: ~/.kube/config
+    context: minikube
+    namespace: camp-dev
+    environments:
+      - dev
+    capabilities:
+      - loadbalancer
+      - ingress
+      - persistent-storage
+    storageClasses:
+      - standard
+    ingressClass: nginx
+    monitoring: false
+    gitops: false
+
+  # Local development cluster with k3s
+  local-k3s:
+    name: local-k3s
+    type: local
+    provider: k3s
+    region: local
+    kubeconfig: ~/.kube/config
+    context: k3s-default
+    namespace: camp-dev
+    environments:
+      - dev
+    capabilities:
+      - loadbalancer
+      - ingress
+      - persistent-storage
+    storageClasses:
+      - local-path
+    ingressClass: traefik
+    monitoring: false
+    gitops: false
+
+  # Development AKS cluster
+  aks-dev:
+    name: aks-dev
+    type: managed
+    provider: azure
+    region: eastus
+    resourceGroup: camp-dev-rg
+    clusterName: camp-dev-aks
+    kubeconfig: ~/.kube/config
+    context: camp-dev-aks
+    namespace: camp-dev
+    environments:
+      - dev
+      - staging
+    capabilities:
+      - loadbalancer
+      - ingress
+      - persistent-storage
+      - autoscaling
+      - monitoring
+    storageClasses:
+      - default
+      - premium-ssd
+    ingressClass: nginx
+    monitoring: true
+    gitops: false
+    azure:
+      subscriptionId: "your-subscription-id"
+      tenantId: "your-tenant-id"
+
+  # Staging AKS cluster
+  aks-staging:
+    name: aks-staging
+    type: managed
+    provider: azure
+    region: eastus
+    resourceGroup: camp-staging-rg
+    clusterName: camp-staging-aks
+    kubeconfig: ~/.kube/config
+    context: camp-staging-aks
+    namespace: camp-staging
+    environments:
+      - staging
+    capabilities:
+      - loadbalancer
+      - ingress
+      - persistent-storage
+      - autoscaling
+      - monitoring
+    storageClasses:
+      - default
+      - premium-ssd
+    ingressClass: nginx
+    monitoring: true
+    gitops: true
+    azure:
+      subscriptionId: "your-subscription-id"
+      tenantId: "your-tenant-id"
+
+  # Production AKS cluster
+  aks-prod:
+    name: aks-prod
+    type: managed
+    provider: azure
+    region: eastus
+    resourceGroup: camp-prod-rg
+    clusterName: camp-prod-aks
+    kubeconfig: ~/.kube/config
+    context: camp-prod-aks
+    namespace: camp-prod
+    environments:
+      - prod
+    capabilities:
+      - loadbalancer
+      - ingress
+      - persistent-storage
+      - autoscaling
+      - monitoring
+      - aad-pod-identity
+      - policy
+    storageClasses:
+      - default
+      - premium-ssd
+    ingressClass: nginx
+    monitoring: true
+    gitops: true
+    azure:
+      subscriptionId: "your-subscription-id"
+      tenantId: "your-tenant-id"
+
+  # Production EKS cluster
+  eks-prod:
+    name: eks-prod
+    type: managed
+    provider: aws
+    region: us-east-1
+    clusterName: camp-prod-eks
+    kubeconfig: ~/.kube/config
+    context: eks-prod
+    namespace: camp-prod
+    environments:
+      - prod
+    capabilities:
+      - loadbalancer
+      - ingress
+      - persistent-storage
+      - autoscaling
+      - monitoring
+      - iam-roles-for-service-accounts
+    storageClasses:
+      - gp2
+      - gp3
+    ingressClass: nginx
+    monitoring: true
+    gitops: true
+    aws:
+      accountId: "your-aws-account-id"
+      region: us-east-1
+
+  # Production GKE cluster
+  gke-prod:
+    name: gke-prod
+    type: managed
+    provider: gcp
+    region: us-central1
+    clusterName: camp-prod-gke
+    kubeconfig: ~/.kube/config
+    context: gke_us-central1_camp-prod-gke
+    namespace: camp-prod
+    environments:
+      - prod
+    capabilities:
+      - loadbalancer
+      - ingress
+      - persistent-storage
+      - autoscaling
+      - monitoring
+      - workload-identity
+    storageClasses:
+      - standard
+      - ssd
+    ingressClass: gce
+    monitoring: true
+    gitops: true
+    gcp:
+      projectId: "your-gcp-project-id"
+      region: us-central1
+
+# Default cluster settings
+defaults:
+  namespace: camp
+  storageClass: default
+  ingressClass: nginx
+  monitoring: true
+  gitops: false

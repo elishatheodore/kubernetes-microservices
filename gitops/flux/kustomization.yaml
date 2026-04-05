@@ -1,0 +1,71 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: camp-dev
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./helm/camp
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: camp-repo
+  helm:
+    valueFiles:
+      - values.yaml
+      - ../../environments/values-dev.yaml
+    releaseName: camp-dev
+    targetNamespace: camp-dev
+    values:
+      global:
+        namespace: camp-dev
+      image:
+        tag: latest
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: camp-staging
+  namespace: flux-system
+spec:
+  interval: 5m
+  path: ./helm/camp
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: camp-repo
+  helm:
+    valueFiles:
+      - values.yaml
+      - ../../environments/values-staging.yaml
+    releaseName: camp-staging
+    targetNamespace: camp-staging
+    values:
+      global:
+        namespace: camp-staging
+      image:
+        tag: staging
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+metadata:
+  name: camp-prod
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./helm/camp
+  prune: false
+  sourceRef:
+    kind: GitRepository
+    name: camp-repo
+  helm:
+    valueFiles:
+      - values.yaml
+      - ../../environments/values-prod.yaml
+    releaseName: camp-prod
+    targetNamespace: camp-prod
+    values:
+      global:
+        namespace: camp-prod
+      image:
+        tag: v1.0.0

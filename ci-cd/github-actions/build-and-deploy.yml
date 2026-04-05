@@ -1,0 +1,397 @@
+name: Build and Deploy CAMP Platform
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      cluster:
+        description: 'Target cluster'
+        required: true
+        type: choice
+        options:
+          - local-dev
+          - aks-dev
+          - aks-staging
+          - aks-prod
+        default: 'local-dev'
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: 'dev'
+      image_tag:
+        description: 'Docker image tag'
+        required: false
+        type: string
+        default: 'latest'
+      deploy:
+        description: 'Deploy after build'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Dry run deployment'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: kubernetes-microservices
+
+jobs:
+  # Build and test job
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          
+    - name: Build and push backend image
+      id: build-backend
+      uses: docker/build-push-action@v5
+      with:
+        context: ./camp-backend
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/camp-backend:${{ steps.meta.outputs.version }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+        
+    - name: Build and push web frontend image
+      id: build-web
+      uses: docker/build-push-action@v5
+      with:
+        context: ./camp-web-frontend
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/camp-web:${{ steps.meta.outputs.version }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+        
+    - name: Build and push auth frontend image
+      id: build-auth
+      uses: docker/build-push-action@v5
+      with:
+        context: ./camp-auth-frontend
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/camp-auth:${{ steps.meta.outputs.version }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+        
+    - name: Run security scan on images
+      run: |
+        echo "Scanning backend image..."
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy:latest image --severity HIGH,CRITICAL \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/camp-backend:${{ steps.meta.outputs.version }}
+          
+        echo "Scanning web frontend image..."
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy:latest image --severity HIGH,CRITICAL \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/camp-web:${{ steps.meta.outputs.version }}
+          
+        echo "Scanning auth frontend image..."
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy:latest image --severity HIGH,CRITICAL \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/camp-auth:${{ steps.meta.outputs.version }}
+
+  # Helm chart validation job
+  validate-helm:
+    name: Validate Helm Chart
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: v3.12.0
+        
+    - name: Set up yq
+      run: |
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+        
+    - name: Validate Helm chart
+      run: |
+        helm lint helm/camp
+        
+    - name: Test chart rendering
+      run: |
+        for env in dev staging prod; do
+          echo "Testing environment: $env"
+          helm template camp-${env} helm/camp \
+            --values helm/camp/values.yaml \
+            --values environments/values-${env}.yaml \
+            --dry-run
+        done
+
+  # Deploy job (manual trigger)
+  deploy:
+    name: Deploy to Cluster
+    runs-on: ubuntu-latest
+    needs: [build, validate-helm]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up tools
+      run: |
+        # Install Helm
+        curl https://get.helm.sh/helm-v3.12.0-linux-amd64.tar.gz | tar xz
+        sudo mv linux-amd64/helm /usr/local/bin/
+        
+        # Install kubectl
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+        
+        # Install yq
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+        
+    - name: Configure Azure CLI (for AKS)
+      if: startsWith(github.event.inputs.cluster, 'aks')
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Get AKS credentials
+      if: startsWith(github.event.inputs.cluster, 'aks')
+      run: |
+        # Extract cluster info from config
+        CLUSTER_INFO=$(yq eval ".clusters.${{ github.event.inputs.cluster }}" clusters/cluster-config.yaml)
+        RESOURCE_GROUP=$(echo "$CLUSTER_INFO" | yq eval '.resourceGroup' -)
+        CLUSTER_NAME=$(echo "$CLUSTER_INFO" | yq eval '.clusterName' -)
+        
+        az aks get-credentials \
+          --resource-group "$RESOURCE_GROUP" \
+          --name "$CLUSTER_NAME" \
+          --overwrite-existing
+          
+    - name: Configure kubectl context
+      run: |
+        # Extract context from config
+        CLUSTER_CONTEXT=$(yq eval ".clusters.${{ github.event.inputs.cluster }}.context" clusters/cluster-config.yaml)
+        kubectl config use-context "$CLUSTER_CONTEXT"
+        
+    - name: Verify cluster connectivity
+      run: |
+        kubectl cluster-info
+        kubectl get nodes
+        
+    - name: Deploy with Helm
+      run: |
+        # Set deployment parameters
+        CLUSTER="${{ github.event.inputs.cluster }}"
+        ENVIRONMENT="${{ github.event.inputs.environment }}"
+        IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+        NAMESPACE="camp-${ENVIRONMENT}"
+        
+        # Use image tag from build if not specified
+        if [[ "$IMAGE_TAG" == "latest" ]]; then
+          IMAGE_TAG="${{ needs.build.outputs.image-tag }}"
+        fi
+        
+        # Create namespace
+        kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Deploy with Helm
+        helm upgrade --install camp-${ENVIRONMENT} helm/camp \
+          --namespace "$NAMESPACE" \
+          --values helm/camp/values.yaml \
+          --values environments/values-${ENVIRONMENT}.yaml \
+          --set image.tag="$IMAGE_TAG" \
+          --wait \
+          --timeout 10m \
+          ${{ github.event.inputs.dry_run == 'true' && '--dry-run --debug' || '' }}
+          
+    - name: Verify deployment
+      if: github.event.inputs.dry_run != 'true'
+      run: |
+        NAMESPACE="camp-${{ github.event.inputs.environment }}"
+        
+        # Wait for pods to be ready
+        kubectl wait --for=condition=available --timeout=300s deployment/camp-${{ github.event.inputs.environment }}-backend -n "$NAMESPACE"
+        kubectl wait --for=condition=available --timeout=300s deployment/camp-${{ github.event.inputs.environment }}-web -n "$NAMESPACE"
+        kubectl wait --for=condition=available --timeout=300s deployment/camp-${{ github.event.inputs.environment }}-auth -n "$NAMESPACE"
+        
+        # Show deployment status
+        kubectl get pods -n "$NAMESPACE"
+        kubectl get services -n "$NAMESPACE"
+        kubectl get ingress -n "$NAMESPACE"
+        
+    - name: Run smoke tests
+      if: github.event.inputs.dry_run != 'true'
+      run: |
+        NAMESPACE="camp-${{ github.event.inputs.environment }}"
+        
+        # Get ingress URL
+        INGRESS_URL=$(kubectl get ingress -n "$NAMESPACE" -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "")
+        
+        if [[ -n "$INGRESS_URL" ]]; then
+          echo "Testing application at http://$INGRESS_URL"
+          
+          # Test health endpoints
+          curl -f "http://$INGRESS_URL/api/test" || exit 1
+          curl -f "http://$INGRESS_URL/api/health" || exit 1
+          curl -f "http://$INGRESS_URL/" || exit 1
+          curl -f "http://$INGRESS_URL/auth" || exit 1
+          
+          echo "✅ Smoke tests passed"
+        else
+          echo "⚠️ No ingress URL found, skipping smoke tests"
+        fi
+
+  # Automated deployment for specific branches
+  auto-deploy:
+    name: Auto Deploy
+    runs-on: ubuntu-latest
+    needs: [build, validate-helm]
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push')
+    
+    strategy:
+      matrix:
+        include:
+          - branch: main
+            cluster: aks-staging
+            environment: staging
+          - tag: v*
+            cluster: aks-prod
+            environment: prod
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up tools
+      run: |
+        # Install Helm
+        curl https://get.helm.sh/helm-v3.12.0-linux-amd64.tar.gz | tar xz
+        sudo mv linux-amd64/helm /usr/local/bin/
+        
+        # Install kubectl
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+        
+        # Install yq
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+        
+    - name: Configure Azure CLI
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Get AKS credentials
+      run: |
+        # Extract cluster info from config
+        CLUSTER_INFO=$(yq eval ".clusters.${{ matrix.cluster }}" clusters/cluster-config.yaml)
+        RESOURCE_GROUP=$(echo "$CLUSTER_INFO" | yq eval '.resourceGroup' -)
+        CLUSTER_NAME=$(echo "$CLUSTER_INFO" | yq eval '.clusterName' -)
+        
+        az aks get-credentials \
+          --resource-group "$RESOURCE_GROUP" \
+          --name "$CLUSTER_NAME" \
+          --overwrite-existing
+          
+    - name: Configure kubectl context
+      run: |
+        # Extract context from config
+        CLUSTER_CONTEXT=$(yq eval ".clusters.${{ matrix.cluster }}.context" clusters/cluster-config.yaml)
+        kubectl config use-context "$CLUSTER_CONTEXT"
+        
+    - name: Deploy to ${{ matrix.environment }}
+      run: |
+        # Set deployment parameters
+        ENVIRONMENT="${{ matrix.environment }}"
+        IMAGE_TAG="${{ needs.build.outputs.image-tag }}"
+        NAMESPACE="camp-${ENVIRONMENT}"
+        
+        echo "Deploying to ${{ matrix.environment }} environment..."
+        
+        # Create namespace
+        kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+        
+        # Deploy with Helm
+        helm upgrade --install camp-${ENVIRONMENT} helm/camp \
+          --namespace "$NAMESPACE" \
+          --values helm/camp/values.yaml \
+          --values environments/values-${ENVIRONMENT}.yaml \
+          --set image.tag="$IMAGE_TAG" \
+          --wait \
+          --timeout 10m
+          
+    - name: Verify deployment
+      run: |
+        NAMESPACE="camp-${{ matrix.environment }}"
+        
+        # Wait for pods to be ready
+        kubectl wait --for=condition=available --timeout=300s deployment/camp-${{ matrix.environment }}-backend -n "$NAMESPACE"
+        kubectl wait --for=condition=available --timeout=300s deployment/camp-${{ matrix.environment }}-web -n "$NAMESPACE"
+        kubectl wait --for=condition=available --timeout=300s deployment/camp-${{ matrix.environment }}-auth -n "$NAMESPACE"
+        
+        # Show deployment status
+        kubectl get pods -n "$NAMESPACE"
+        kubectl get services -n "$NAMESPACE"
+        kubectl get ingress -n "$NAMESPACE"
+        
+    - name: Notify deployment
+      run: |
+        echo "🚀 Deployment completed successfully!"
+        echo "Environment: ${{ matrix.environment }}"
+        echo "Cluster: ${{ matrix.cluster }}"
+        echo "Image Tag: ${{ needs.build.outputs.image-tag }}"
+        echo "Namespace: camp-${{ matrix.environment }}"

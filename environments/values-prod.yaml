@@ -1,0 +1,265 @@
+# Production Environment Configuration
+# This file contains all production-specific overrides
+
+# Environment metadata
+environment: production
+clusterType: aks
+region: eastus
+
+# Global configuration
+global:
+  imageRegistry: ghcr.io
+  imagePullSecrets:
+    - name: ghcr-secret
+  storageClass: premium-ssd
+  environment: production
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: elishatheodore/kubernetes-microservices
+  pullPolicy: IfNotPresent
+  tag: "v1.0.0"
+
+# Replica configuration for production
+replicaCount:
+  backend: 3
+  web: 3
+  auth: 2
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations:
+    azure.workload.identity/use: "true"
+    kubernetes.io/role: "production"
+  name: ""
+
+# Resource configuration for production
+resources:
+  backend:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  web:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+  auth:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/enable-modsecurity: "true"
+    nginx.ingress.kubernetes.io/modsecurity-snippet: "SecRuleEngine On"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+  hosts:
+    - host: camp.yourdomain.com
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: Prefix
+          service: backend
+        - path: /auth(/|$)(.*)
+          pathType: Prefix
+          service: auth
+        - path: /(.*)
+          pathType: Prefix
+          service: web
+  tls:
+    - secretName: camp-prod-tls
+      hosts:
+        - camp.yourdomain.com
+
+# Application configuration
+config:
+  databaseUrl: "sqlite:///./camp.db"
+  debug: false
+  logLevel: warning
+  apiV1Prefix: "/api/v1"
+  appName: "Cloud Asset Management Platform"
+  appVersion: "1.0.0"
+  storageType: local
+  localStoragePath: "./uploads"
+  maxFileSize: "104857600"  # 100MB
+  corsOrigins: "https://camp.yourdomain.com"
+  pythonUnbuffered: "1"
+  pythonpath: "/app"
+
+# Secrets configuration (these should be overridden with actual production secrets)
+secrets:
+  secretKey: "production-secret-key-change-this-immediately"
+  jwtSecret: "production-jwt-secret-change-this-immediately"
+  defaultPassword: "change-this-password-immediately"
+
+# Storage configuration
+persistence:
+  uploads:
+    enabled: true
+    storageClass: premium-ssd
+    accessMode: ReadWriteOnce
+    size: 50Gi
+    mountPath: /app/uploads
+  database:
+    enabled: true
+    storageClass: premium-ssd
+    accessMode: ReadWriteOnce
+    size: 5Gi
+    mountPath: /app/camp.db
+    subPath: camp.db
+
+# Autoscaling configuration
+autoscaling:
+  backend:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  web:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  auth:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+  podMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      - podSelector:
+          matchLabels:
+            app: camp
+  egress:
+    - to:
+      - podSelector:
+          matchLabels:
+            app: camp
+    - to: []
+      ports:
+      - protocol: TCP
+        port: 53
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 443
+      - protocol: TCP
+        port: 80
+
+# Resource quotas
+resourceQuota:
+  enabled: true
+  requests:
+    cpu: "4"
+    memory: 8Gi
+  limits:
+    cpu: "8"
+    memory: 16Gi
+  persistentvolumeclaims: "20"
+  pods: "50"
+  services: "20"
+  secrets: "20"
+  configmaps: "20"
+
+# Node selector
+nodeSelector:
+  environment: production
+  node-type: application
+
+# Tolerations
+tolerations:
+  - key: "environment"
+    operator: "Equal"
+    value: "production"
+    effect: "NoSchedule"
+  - key: "node-type"
+    operator: "Equal"
+    value: "application"
+    effect: "NoSchedule"
+
+# Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - camp
+        topologyKey: kubernetes.io/hostname
+    - weight: 50
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/component
+            operator: In
+            values:
+            - backend
+        topologyKey: kubernetes.io/hostname
+
+# Additional labels
+commonLabels:
+  environment: production
+  managed-by: helm
+  tier: application
+  cost-center: engineering
+  security-level: high
+  data-classification: confidential
+
+# Additional annotations
+commonAnnotations:
+  config.kubernetes.io/origin: helm-chart
+  config.kubernetes.io/version: v1.0.0
+  environment: production
+  compliance: "sox-gdpr-hipaa"
+  security.scan: "required"
+  backup.policy: "daily"
+  retention.policy: "90-days"

@@ -1,0 +1,116 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: camp-dev
+  namespace: argocd
+  labels:
+    app: camp
+    environment: dev
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/elishatheodore/kubernetes-microservices.git
+    targetRevision: main
+    path: helm/camp
+    helm:
+      valueFiles:
+        - values.yaml
+        - ../../environments/values-dev.yaml
+      parameters:
+        - name: global.namespace
+          value: camp-dev
+        - name: image.tag
+          value: latest
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: camp-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: camp-staging
+  namespace: argocd
+  labels:
+    app: camp
+    environment: staging
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/elishatheodore/kubernetes-microservices.git
+    targetRevision: main
+    path: helm/camp
+    helm:
+      valueFiles:
+        - values.yaml
+        - ../../environments/values-staging.yaml
+      parameters:
+        - name: global.namespace
+          value: camp-staging
+        - name: image.tag
+          value: staging
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: camp-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: camp-prod
+  namespace: argocd
+  labels:
+    app: camp
+    environment: prod
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/elishatheodore/kubernetes-microservices.git
+    targetRevision: main
+    path: helm/camp
+    helm:
+      valueFiles:
+        - values.yaml
+        - ../../environments/values-prod.yaml
+      parameters:
+        - name: global.namespace
+          value: camp-prod
+        - name: image.tag
+          value: v1.0.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: camp-prod
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

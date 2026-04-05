@@ -1,0 +1,20 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: camp-repo
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: https://github.com/elishatheodore/kubernetes-microservices.git
+  ref:
+    branch: main
+  secretRef:
+    name: camp-repo-creds
+  ignore: |
+    # exclude all files/dirs that start with _
+    /*
+    # include only the directories we need
+    !/helm/
+    !/environments/
+    !/gitops/
+  gitImplementation: go-git

@@ -694,14 +694,17 @@ curl http://localhost:8000/health
 - ✅ Helm chart packaging
 - ✅ Kubernetes manifests
 - ✅ Multi-environment support
+- ✅ Multi-cluster deployment system
+- ✅ CI/CD pipelines
+- ✅ GitOps integration
 
 ### Phase 2: Production Ready 🔄
 - 🔄 PostgreSQL database integration
-- 🔄 CI/CD pipelines
-- 🔄 Automated testing
+- 🔄 Automated testing pipelines
 - 🔄 Monitoring and alerting
 - 🔄 Backup and recovery
 - 🔄 Multi-region deployment
+- 🔄 Advanced security features
 
 ### Phase 3: Cloud Native 📋
 - 📋 Azure Container Instances
@@ -709,21 +712,69 @@ curl http://localhost:8000/health
 - 📋 Azure SQL Database
 - 📋 Application Gateway
 - 📋 Front Door CDN
-- 📋 GitOps with ArgoCD
+- 📋 GitOps with ArgoCD/Flux
+- 📋 Service mesh integration
 
 ## 🎯 Deployment Options Summary
 
-| Method | Best For | Complexity | Scalability | Production Ready |
-|--------|----------|------------|-------------|------------------|
-| **Local Development** | Testing & Development | ⭐ | ⭐ | ⭐ |
-| **Docker Compose** | Small deployments | ⭐⭐ | ⭐⭐ | ⭐⭐ |
-| **Raw Kubernetes** | Custom deployments | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Helm Chart** | Production deployments | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Method | Best For | Complexity | Scalability | Production Ready | Multi-Cluster |
+|--------|----------|------------|-------------|------------------|---------------|
+| **Local Development** | Testing & Development | ⭐ | ⭐ | ⭐ | ❌ |
+| **Docker Compose** | Small deployments | ⭐⭐ | ⭐⭐ | ⭐⭐ | ❌ |
+| **Raw Kubernetes** | Custom deployments | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ |
+| **Helm Chart** | Production deployments | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Multi-Cluster System** | Enterprise deployments | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
 
 ### Recommended Deployment Path
 1. **Development**: Local Python servers → Docker Compose
 2. **Staging**: Docker Compose → Helm with dev values
-3. **Production**: Helm with prod values → GitOps automation
+3. **Production**: Helm with prod values → Multi-Cluster → GitOps automation
+
+## 🌍 Multi-Cluster Deployment
+
+The CAMP platform now supports deployment across multiple Kubernetes clusters with full parameterization:
+
+### Quick Start
+```bash
+# Make scripts executable
+./scripts/make-executable.sh
+
+# Deploy to local development
+./scripts/deploy.sh -c local-dev -e dev
+
+# Deploy to staging
+./scripts/deploy.sh -c aks-staging -e staging -t v1.0.0
+
+# Deploy to production
+./scripts/deploy.sh -c aks-prod -e prod -t v1.0.0 -f
+```
+
+### Supported Clusters
+- **Local**: Minikube, K3s, Docker Desktop
+- **Azure**: AKS clusters
+- **AWS**: EKS clusters
+- **GCP**: GKE clusters
+- **Custom**: Any Kubernetes cluster
+
+### Environment Configurations
+- **Development**: Single replicas, debug enabled, minimal resources
+- **Staging**: Multiple replicas, staging domain, basic monitoring
+- **Production**: High availability, security hardened, full monitoring
+
+### CI/CD Integration
+- **GitHub Actions**: Automated builds and deployments
+- **Manual Triggers**: On-demand deployments to any cluster
+- **GitOps Support**: ArgoCD and Flux CD integration
+- **Multi-architecture**: AMD64 and ARM64 support
+
+### Key Features
+- **Zero Hardcoding**: All values configurable
+- **Cloud Agnostic**: Works with any Kubernetes provider
+- **GitOps Ready**: Single source of truth in Git
+- **Production Grade**: Security, monitoring, scaling built-in
+- **Easy Extension**: Add new clusters and environments easily
+
+For detailed multi-cluster deployment instructions, see [Multi-Cluster Deployment Guide](docs/MULTI_CLUSTER_DEPLOYMENT.md).
 
 ## 🛠 Development & Operations
 
@@ -762,20 +813,29 @@ helm get values camp-release -n camp      # Get current values
 helm get all camp-release -n camp         # Get all release info
 ```
 
-### Raw Kubernetes Development
+### Multi-Cluster Development
 ```bash
-# Navigate to k8s directory
-cd k8s
+# Navigate to scripts directory
+cd scripts
 
-# Deploy to AKS
-./deploy.sh                             # Full AKS deployment
-./cleanup.sh                            # Cleanup deployment
+# Deploy with different environments
+./deploy.sh -c local-dev -e dev                 # Local development
+./deploy.sh -c aks-staging -e staging          # AKS staging
+./deploy.sh -c aks-prod -e prod                 # AKS production
 
-# Manual operations
-kubectl apply -k .                       # Apply with Kustomize
-kubectl get pods -n camp                 # View pods
-kubectl logs -f deployment/camp-backend -n camp  # View logs
-kubectl scale deployment camp-backend --replicas=3 -n camp  # Scale deployment
+# Cluster management
+./cluster-manager.sh list                       # List all clusters
+./cluster-manager.sh details aks-prod         # Cluster details
+./cluster-manager.sh switch aks-prod          # Switch context
+./cluster-manager.sh test aks-prod            # Test connectivity
+./cluster-manager.sh status aks-prod           # Show status
+./cluster-manager.sh validate                  # Validate configs
+
+# Advanced deployment options
+./deploy.sh -c aks-prod -e prod -t v1.0.0      # With specific tag
+./deploy.sh -c aks-prod -e prod --dry-run      # Preview deployment
+./deploy.sh -c aks-prod -e prod -f             # Force upgrade
+./deploy.sh -c aks-prod -e prod -g             # Enable GitOps
 ```
 
 ### Local Development
@@ -817,6 +877,7 @@ kubectl get ingress -n camp
 - **GHCR Setup**: `GHCR_SETUP.md`
 - **AKS Deployment**: `AKS_SETUP.md`
 - **Helm Chart**: `HELM_README.md`
+- **Multi-Cluster Deployment**: `docs/MULTI_CLUSTER_DEPLOYMENT.md`
 - **Backend API**: `http://localhost:8000/docs`
 - **Frontend Guide**: `camp-web-frontend/README.md`
 - **Auth System**: `camp-auth-frontend/README.md`
@@ -911,10 +972,11 @@ For support and questions:
 
 ---
 
-**Built with ❤️ using FastAPI, Docker, Helm, Kubernetes, HTML, CSS, JavaScript, and modern security practices**
+**Built with ❤️ using FastAPI, Docker, Helm, Kubernetes, CI/CD, GitOps, HTML, CSS, JavaScript, and modern security practices**
 
 **Version**: 1.0.0  
-**Last Updated**: 2026-04-04  
-**Status**: Production Ready (Docker + Helm + Kubernetes)  
+**Last Updated**: 2026-04-05  
+**Status**: Production Ready (Multi-Cluster + CI/CD + GitOps)  
 **Container Registry**: GitHub Container Registry (GHCR)  
-**Package Manager**: Helm Chart Available
+**Package Manager**: Helm Chart Available  
+**Deployment**: Multi-Cluster Enterprise Ready

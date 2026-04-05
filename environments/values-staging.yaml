@@ -1,0 +1,238 @@
+# Staging Environment Configuration
+# This file contains all staging-specific overrides
+
+# Environment metadata
+environment: staging
+clusterType: aks
+region: eastus
+
+# Global configuration
+global:
+  imageRegistry: ghcr.io
+  imagePullSecrets:
+    - name: ghcr-secret
+  storageClass: default
+  environment: staging
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: elishatheodore/kubernetes-microservices
+  pullPolicy: IfNotPresent
+  tag: "staging"
+
+# Replica configuration for staging
+replicaCount:
+  backend: 2
+  web: 2
+  auth: 2
+
+# Service account configuration
+serviceAccount:
+  create: true
+  annotations:
+    azure.workload.identity/use: "true"
+  name: ""
+
+# Resource configuration for staging
+resources:
+  backend:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  web:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+  auth:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/rate-limit: "50"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  hosts:
+    - host: camp-staging.yourdomain.com
+      paths:
+        - path: /api(/|$)(.*)
+          pathType: Prefix
+          service: backend
+        - path: /auth(/|$)(.*)
+          pathType: Prefix
+          service: auth
+        - path: /(.*)
+          pathType: Prefix
+          service: web
+  tls:
+    - secretName: camp-staging-tls
+      hosts:
+        - camp-staging.yourdomain.com
+
+# Application configuration
+config:
+  databaseUrl: "sqlite:///./camp.db"
+  debug: false
+  logLevel: info
+  apiV1Prefix: "/api/v1"
+  appName: "Cloud Asset Management Platform (Staging)"
+  appVersion: "1.0.0-staging"
+  storageType: local
+  localStoragePath: "./uploads"
+  maxFileSize: "52428800"
+  corsOrigins: "https://camp-staging.yourdomain.com"
+  pythonUnbuffered: "1"
+  pythonpath: "/app"
+
+# Secrets configuration
+secrets:
+  secretKey: "staging-secret-key-change-this"
+  jwtSecret: "staging-jwt-secret-change-this"
+  defaultPassword: "staging-admin123"
+
+# Storage configuration
+persistence:
+  uploads:
+    enabled: true
+    storageClass: default
+    accessMode: ReadWriteOnce
+    size: 20Gi
+    mountPath: /app/uploads
+  database:
+    enabled: true
+    storageClass: default
+    accessMode: ReadWriteOnce
+    size: 2Gi
+    mountPath: /app/camp.db
+    subPath: camp.db
+
+# Autoscaling configuration
+autoscaling:
+  backend:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  web:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+  auth:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+  podMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+      - podSelector:
+          matchLabels:
+            app: camp
+  egress:
+    - to:
+      - podSelector:
+          matchLabels:
+            app: camp
+    - to: []
+      ports:
+      - protocol: TCP
+        port: 53
+      - protocol: UDP
+        port: 53
+      - protocol: TCP
+        port: 443
+      - protocol: TCP
+        port: 80
+
+# Resource quotas
+resourceQuota:
+  enabled: true
+  requests:
+    cpu: "2"
+    memory: 4Gi
+  limits:
+    cpu: "4"
+    memory: 8Gi
+  persistentvolumeclaims: "10"
+  pods: "20"
+  services: "10"
+  secrets: "10"
+  configmaps: "10"
+
+# Node selector
+nodeSelector:
+  environment: staging
+
+# Tolerations
+tolerations:
+  - key: "environment"
+    operator: "Equal"
+    value: "staging"
+    effect: "NoSchedule"
+
+# Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - camp
+        topologyKey: kubernetes.io/hostname
+
+# Additional labels
+commonLabels:
+  environment: staging
+  managed-by: helm
+  tier: application
+  cost-center: engineering
+
+# Additional annotations
+commonAnnotations:
+  config.kubernetes.io/origin: helm-chart
+  config.kubernetes.io/version: v1.0.0-staging
+  environment: staging
+  compliance: "internal-audit"
