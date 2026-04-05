@@ -32,6 +32,8 @@ A comprehensive, production-ready full-stack application for secure cloud asset 
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
+<img width="1402" height="1121" alt="image" src="https://github.com/user-attachments/assets/4c0cfaeb-b4ca-4ef5-a448-ef08eba56212" />
+
 
 ## 🐳 Docker Containerization
 
@@ -547,6 +549,8 @@ User Browser
     │
     └─► Direct API Access (8000/docs)
 ```
+<img width="1366" height="1150" alt="image" src="https://github.com/user-attachments/assets/e663ea5d-bc4a-4e31-abec-9d1ddb3433c1" />
+
 
 ## 🛠 Development Setup
 
