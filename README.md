@@ -1,6 +1,6 @@
-# Cloud Asset Management Platform (CAMP)
+# Cloud Asset Management Platform (CAMP) - cloud-native microservices platform using Kubernete
 
-A comprehensive, production-ready full-stack application for secure cloud asset management with authentication, file upload, storage, and management capabilities. Now fully containerized with Docker support and GitHub Container Registry integration.
+Built a production-grade, cloud-native microservices platform using Kubernetes, Docker, and Helm, designed for multi-environment and multi-cluster deployments. Implemented GitOps-driven workflows and CI/CD pipelines to automate build, test, and deployment processes. Architected a modular, API-driven system with environment parameterization, enabling portability across AKS, k3s, and other Kubernetes distributions.
 
 ## 🏗️ System Architecture
 
