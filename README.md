@@ -1,6 +1,11 @@
 # Cloud Asset Management Platform (CAMP) - cloud-native microservices platform using Kubernete
 
-Built a production-grade, cloud-native microservices platform using Kubernetes, Docker, and Helm, designed for multi-environment and multi-cluster deployments. Implemented GitOps-driven workflows and CI/CD pipelines to automate build, test, and deployment processes. Architected a modular, API-driven system with environment parameterization, enabling portability across AKS, k3s, and other Kubernetes distributions.
+-  Designed and deployed a Kubernetes-based microservices platform using Docker and Helm
+-  Implemented GitOps workflows using Argo CD for automated, declarative deployments
+-  Built CI/CD pipelines with GitHub Actions to automate container builds and cluster deployments
+-  Architected environment-agnostic configurations supporting multi-cluster deployments (AKS, k3s)
+-  Developed a fully parameterized deployment system eliminating hardcoded infrastructure values
+-  Applied best practices in container orchestration, service isolation, and scalable system design
 
 ## 🏗️ System Architecture
 
