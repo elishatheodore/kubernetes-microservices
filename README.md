@@ -1,5 +1,7 @@
 # kubernetes-microservices — Cloud Asset Management Platform (CAMP)
 
+[![Build and Lint](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/build-and-deploy.yml)
+
 A **production-grade, cloud-native microservices platform** built with Kubernetes, Helm, and GitOps — deployed on Azure Kubernetes Service (AKS) with full multi-cluster enterprise support.
 
 This project demonstrates end-to-end platform engineering: from containerized application development to automated CI/CD, GitOps delivery, and multi-environment orchestration across AKS, EKS, GKE, and local clusters.
