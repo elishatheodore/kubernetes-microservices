@@ -68,106 +68,138 @@ docker-compose up -d
 
 ```
 kubernetes-microservices/
-├── README.md                    # Main project documentation
-├── DOCKER_README.md            # Docker-specific documentation
-├── GHCR_SETUP.md               # GitHub Container Registry guide
-├── AKS_SETUP.md                # AKS deployment guide
-├── docker-compose.yml          # Local Docker compose
-├── docker-compose.ghcr.yml    # GHCR Docker compose
-├── build.sh / build.bat        # Build scripts
-├── restart.sh / restart.bat    # Restart scripts
-├── push-to-ghcr.sh             # GHCR push script
-├── setup-ghcr.sh               # GHCR setup script
+├── README.md                           # Main project documentation
+├── DOCKER_README.md                   # Docker-specific documentation
+├── GHCR_SETUP.md                      # GitHub Container Registry guide
+├── AKS_SETUP.md                       # AKS deployment guide
+├── HELM_README.md                     # Helm chart documentation
+├── MULTI_CLUSTER_DEPLOYMENT.md         # Multi-cluster deployment guide
 │
-├── helm/                       # Helm chart deployment
-│   ├── deploy-helm.sh          # Helm deployment script
-│   └── camp/
-│       ├── Chart.yaml          # Helm chart metadata
-│       ├── values.yaml         # Default values
-│       ├── values-dev.yaml     # Development values
-│       ├── values-prod.yaml    # Production values
-│       └── templates/          # Kubernetes templates
-│           ├── _helpers.tpl    # Template helpers
-│           ├── deployment.yaml # Deployments
-│           ├── service.yaml    # Services
-│           ├── ingress.yaml     # Ingress
-│           ├── configmap.yaml   # Config maps
-│           ├── secret.yaml      # Secrets
-│           ├── pvc.yaml        # Persistent volumes
-│           ├── hpa.yaml         # Autoscalers
-│           ├── resourcequota.yaml # Resource quotas
-│           ├── networkpolicy.yaml # Network policies
-│           ├── monitoring.yaml  # Monitoring
-│           ├── serviceaccount.yaml # Service accounts
-│           └── notes.txt       # Installation notes
+├── 🐳 Docker Configuration
+│   ├── docker-compose.yml             # Local Docker compose
+│   ├── docker-compose.ghcr.yml       # GHCR Docker compose
+│   ├── build.sh / build.bat          # Build scripts
+│   ├── restart.sh / restart.bat      # Restart scripts
+│   ├── push-to-ghcr.sh              # GHCR push script
+│   ├── push-to-ghcr-simple.sh       # Simple GHCR push
+│   └── setup-ghcr.sh                # GHCR setup script
 │
-├── k8s/                        # Raw Kubernetes manifests
-│   ├── deploy.sh                # AKS deployment script
-│   ├── cleanup.sh               # AKS cleanup script
-│   ├── namespace.yaml           # Namespace
-│   ├── configmap.yaml           # Configuration
-│   ├── secret.yaml              # Secrets
-│   ├── persistent-volumes.yaml  # Storage
-│   ├── backend-deployment.yaml  # Backend deployment
-│   ├── web-frontend-deployment.yaml # Web deployment
-│   ├── auth-frontend-deployment.yaml # Auth deployment
-│   ├── ingress.yaml             # Ingress
-│   ├── horizontal-pod-autoscaler.yaml # HPA
-│   ├── resource-quota.yaml      # Resource quotas
-│   ├── network-policy.yaml      # Network policies
-│   ├── monitoring.yaml          # Monitoring
-│   └── kustomization.yaml       # Kustomize config
+├── 🏗️ Application Services
+│   ├── camp-backend/                 # FastAPI Python Backend
+│   │   ├── README.md               # Backend documentation
+│   │   ├── requirements.txt        # Python dependencies
+│   │   ├── run.py                  # Backend entry point
+│   │   ├── Dockerfile              # Backend container definition
+│   │   ├── .dockerignore           # Docker build exclusions
+│   │   ├── .env                    # Backend environment config
+│   │   ├── camp.db                 # SQLite database (auto-created)
+│   │   ├── uploads/                # File storage directory
+│   │   └── app/                    # Application code
+│   │       ├── main.py            # FastAPI application
+│   │       ├── api/               # API routers
+│   │       ├── core/              # Core configuration
+│   │       ├── models/            # Database models
+│   │       ├── schemas/           # Pydantic schemas
+│   │       ├── services/          # Business logic
+│   │       └── db/                # Database configuration
+│   │
+│   ├── camp-web-frontend/          # Main Web Frontend
+│   │   ├── README.md              # Frontend documentation
+│   │   ├── serve.py               # Development server
+│   │   ├── Dockerfile             # Web frontend container
+│   │   ├── .dockerignore          # Docker build exclusions
+│   │   ├── package.json           # Node.js dependencies
+│   │   ├── index.html             # Main application
+│   │   ├── styles.css             # Custom CSS (dark theme)
+│   │   ├── config.js              # API configuration
+│   │   ├── api-client.js          # API communication
+│   │   ├── app.js                 # Application logic
+│   │   ├── api-tester.js          # API testing interface
+│   │   ├── debug.html             # Debug interface
+│   │   └── API_DOCUMENTATION.md   # API usage guide
+│   │
+│   └── camp-auth-frontend/         # Authentication Frontend
+│       ├── README.md              # Auth documentation
+│       ├── Dockerfile             # Auth frontend container
+│       ├── .dockerignore          # Docker build exclusions
+│       ├── nginx.conf             # Nginx configuration
+│       ├── index.html             # Login page
+│       ├── styles.css             # Auth styling (matching theme)
+│       └── app.js                 # Authentication logic
 │
-├── camp-backend/                # FastAPI Python Backend
-│   ├── README.md               # Backend documentation
-│   ├── requirements.txt        # Python dependencies
-│   ├── run.py                  # Backend entry point
-│   ├── Dockerfile              # Backend container definition
-│   ├── .dockerignore           # Docker build exclusions
-│   ├── .env                    # Backend environment config
-│   ├── camp.db                 # SQLite database (auto-created)
-│   ├── uploads/                # File storage directory
-│   └── app/
-│       ├── main.py            # FastAPI application
-│       ├── api/               # API routers
-│       │   └── assets.py      # Asset management endpoints
-│       ├── core/              # Core configuration
-│       │   ├── config.py      # Settings and environment
-│       │   ├── middleware.py  # Error handling middleware
-│       │   └── logging.py     # Logging configuration
-│       ├── models/            # Database models
-│       │   └── asset.py       # SQLAlchemy asset model
-│       ├── schemas/           # Pydantic schemas
-│       │   └── asset.py       # API request/response models
-│       ├── services/          # Business logic
-│       │   ├── storage.py     # Abstract storage service
-│       │   └── asset_service.py # Asset business logic
-│       └── db/                # Database configuration
-│           └── database.py     # Database setup and sessions
+├── ☸️ Kubernetes Deployments
+│   ├── k8s/                        # Raw Kubernetes manifests
+│   │   ├── deploy.sh                # AKS deployment script
+│   │   ├── cleanup.sh               # AKS cleanup script
+│   │   ├── namespace.yaml           # Namespace
+│   │   ├── configmap.yaml           # Configuration
+│   │   ├── secret.yaml              # Secrets
+│   │   ├── persistent-volumes.yaml  # Storage
+│   │   ├── backend-deployment.yaml  # Backend deployment
+│   │   ├── web-frontend-deployment.yaml # Web deployment
+│   │   ├── auth-frontend-deployment.yaml # Auth deployment
+│   │   ├── ingress.yaml             # Ingress
+│   │   ├── horizontal-pod-autoscaler.yaml # HPA
+│   │   ├── resource-quota.yaml      # Resource quotas
+│   │   ├── network-policy.yaml      # Network policies
+│   │   ├── monitoring.yaml          # Monitoring
+│   │   └── kustomization.yaml       # Kustomize config
+│   │
+│   └── helm/                       # Helm chart deployment
+│       ├── deploy-helm.sh          # Helm deployment script
+│       ├── values-dev.yaml         # Development values
+│       ├── values-prod.yaml        # Production values
+│       └── camp/
+│           ├── Chart.yaml          # Helm chart metadata
+│           ├── values.yaml         # Default values
+│           └── templates/          # Kubernetes templates
+│               ├── _helpers.tpl    # Template helpers
+│               ├── deployment.yaml # Deployments
+│               ├── service.yaml    # Services
+│               ├── ingress.yaml    # Ingress
+│               ├── configmap.yaml  # Config maps
+│               ├── secret.yaml     # Secrets
+│               ├── pvc.yaml       # Persistent volumes
+│               ├── hpa.yaml       # Autoscalers
+│               ├── resourcequota.yaml # Resource quotas
+│               ├── networkpolicy.yaml # Network policies
+│               ├── monitoring.yaml # Monitoring
+│               ├── serviceaccount.yaml # Service accounts
+│               └── notes.txt      # Installation notes
 │
-├── camp-web-frontend/          # Main Web Frontend
-│   ├── README.md              # Frontend documentation
-│   ├── serve.py               # Development server
-│   ├── Dockerfile             # Web frontend container
-│   ├── .dockerignore          # Docker build exclusions
-│   ├── package.json           # Node.js dependencies
-│   ├── index.html             # Main application
-│   ├── styles.css             # Custom CSS (dark theme)
-│   ├── config.js              # API configuration
-│   ├── api-client.js          # API communication
-│   ├── app.js                 # Application logic
-│   ├── api-tester.js          # API testing interface
-│   ├── debug.html             # Debug interface
-│   └── API_DOCUMENTATION.md   # API usage guide
+├── 🌍 Multi-Cluster Deployment
+│   ├── environments/               # Environment-specific configurations
+│   │   ├── values-dev.yaml       # Development configuration
+│   │   ├── values-staging.yaml   # Staging configuration
+│   │   └── values-prod.yaml      # Production configuration
+│   │
+│   ├── clusters/                  # Cluster definitions
+│   │   └── cluster-config.yaml   # Multi-cluster configuration
+│   │
+│   └── scripts/                   # Management scripts
+│       ├── deploy.sh             # Multi-cluster deployment script
+│       ├── cluster-manager.sh    # Cluster management script
+│       └── make-executable.sh    # Setup script
 │
-└── camp-auth-frontend/         # Authentication Frontend
-    ├── README.md              # Auth documentation
-    ├── Dockerfile             # Auth frontend container
-    ├── .dockerignore          # Docker build exclusions
-    ├── nginx.conf             # Nginx configuration
-    ├── index.html             # Login page
-    ├── styles.css             # Auth styling (matching theme)
-    └── app.js                 # Authentication logic
+├── 🔄 CI/CD Pipelines
+│   └── ci-cd/                     # CI/CD configurations
+│       └── github-actions/
+│           └── build-and-deploy.yml # GitHub Actions workflow
+│
+├── 🚀 GitOps Integration
+│   └── gitops/                    # GitOps configurations
+│       ├── argocd/               # ArgoCD manifests
+│       │   └── application.yaml # ArgoCD applications
+│       └── flux/                 # Flux CD manifests
+│           ├── gitrepository.yaml # Git repository source
+│           └── kustomization.yaml # Flux kustomizations
+│
+├── 📚 Documentation
+│   └── docs/                      # Additional documentation
+│       └── MULTI_CLUSTER_DEPLOYMENT.md # Multi-cluster guide
+│
+└── 🧪 Testing & Utilities
+    └── test-uploads.py            # Upload testing utility
 ```
 
 ## 🚀 Quick Start
@@ -739,6 +771,198 @@ curl http://localhost:8000/health
 2. **Staging**: Docker Compose → Helm with dev values
 3. **Production**: Helm with prod values → Multi-Cluster → GitOps automation
 
+## 🔄 CI/CD Integration
+
+### GitHub Actions Workflow
+The project includes a comprehensive CI/CD pipeline with:
+
+**Features:**
+- **Multi-architecture builds** (AMD64/ARM64)
+- **Automated testing** and validation
+- **Security scanning** with Trivy
+- **Manual deployment triggers** to any cluster
+- **Automated deployments** for staging and production
+- **Helm chart validation** and testing
+
+**Workflow Triggers:**
+- **Push to `main`**: Auto-deploy to staging
+- **Push to `develop`**: Build and test only
+- **Tags (`v*`)**: Auto-deploy to production
+- **Manual dispatch**: On-demand deployment to any cluster
+
+**Manual Deployment Options:**
+```bash
+# Via GitHub Actions UI
+1. Go to Actions → Build and Deploy CAMP Platform
+2. Click "Run workflow"
+3. Select:
+   - Cluster: local-dev, aks-dev, aks-staging, aks-prod
+   - Environment: dev, staging, prod
+   - Image Tag: specific version or latest
+   - Deploy: true/false
+   - Dry Run: true/false
+```
+
+### CI/CD Pipeline Stages
+1. **Build & Test**: Multi-architecture Docker builds
+2. **Security Scan**: Vulnerability scanning with Trivy
+3. **Helm Validation**: Chart linting and template testing
+4. **Deploy**: Targeted deployment to specified cluster
+5. **Verify**: Smoke tests and health checks
+
+## 🚀 GitOps Integration
+
+### ArgoCD Support
+Complete ArgoCD application manifests for automated GitOps:
+
+**Features:**
+- **Automated sync** from Git repository
+- **Multi-environment** applications
+- **Self-healing** capabilities
+- **Rollback support** via Git history
+
+**Applications:**
+- `camp-dev`: Development environment
+- `camp-staging`: Staging environment  
+- `camp-prod`: Production environment
+
+### Flux CD Support
+Flux CD kustomizations for GitOps deployment:
+
+**Features:**
+- **Git repository** source configuration
+- **Helm release** management
+- **Interval-based** synchronization
+- **Prune and self-heal** capabilities
+
+### GitOps Workflow
+```bash
+# 1. Configure GitOps controller (ArgoCD/Flux)
+# 2. Apply GitOps manifests
+kubectl apply -f gitops/argocd/  # or gitops/flux/
+
+# 3. GitOps controller automatically:
+#    - Clones the repository
+#    - Deploys Helm charts
+#    - Monitors for changes
+#    - Syncs cluster state
+```
+
+## 🚀 Deployment Options
+
+### 1. 🐳 Docker Development (Recommended for Local)
+**Best for**: Local development, testing, small deployments
+
+```bash
+# Quick start with pre-built images
+docker-compose -f docker-compose.ghcr.yml up -d
+
+# Or build locally
+docker-compose up -d
+
+# Access at:
+# Auth: http://localhost:3000
+# Web: http://localhost:3004
+# API: http://localhost:8000
+```
+
+### 2. 🎯 Helm Chart (Recommended for Production)
+**Best for**: Single-cluster production deployments
+
+```bash
+# Navigate to helm directory
+cd helm
+
+# Deploy with environment-specific values
+./deploy-helm.sh -f values-dev.yaml     # Development
+./deploy-helm.sh -f values-prod.yaml    # Production
+
+# Manual Helm commands
+helm install camp-release ./camp \
+  --namespace camp \
+  --create-namespace \
+  --values ./camp/values.yaml
+```
+
+### 3. 🌍 Multi-Cluster System (Recommended for Enterprise)
+**Best for**: Multi-environment, multi-cloud deployments
+
+```bash
+# Make scripts executable
+./scripts/make-executable.sh
+
+# Deploy to any cluster/environment
+./scripts/deploy.sh -c local-dev -e dev           # Local development
+./scripts/deploy.sh -c aks-staging -e staging    # AKS staging
+./scripts/deploy.sh -c aks-prod -e prod           # AKS production
+
+# Cluster management
+./scripts/cluster-manager.sh list                 # List all clusters
+./scripts/cluster-manager.sh test aks-prod        # Test connectivity
+./scripts/cluster-manager.sh switch aks-prod     # Switch context
+```
+
+### 4. 🔄 CI/CD Pipeline (Recommended for Automation)
+**Best for**: Automated builds and deployments
+
+**Automated Triggers:**
+- Push to `main` → Deploy to staging
+- Push tags (`v*`) → Deploy to production
+- Pull requests → Build and test only
+
+**Manual Deployment:**
+1. Go to GitHub Actions → "Build and Deploy CAMP Platform"
+2. Click "Run workflow"
+3. Select cluster, environment, image tag
+4. Enable deployment option
+
+### 5. 🚀 GitOps (Recommended for Production)
+**Best for**: Git-based deployment automation
+
+```bash
+# Apply GitOps manifests
+kubectl apply -f gitops/argocd/    # For ArgoCD
+# OR
+kubectl apply -f gitops/flux/       # For Flux CD
+
+# GitOps controller handles:
+# - Automatic deployment from Git
+# - Continuous synchronization
+# - Self-healing
+# - Rollback via Git history
+```
+
+### 6. ☸️ Raw Kubernetes (For Custom Deployments)
+**Best for**: Manual Kubernetes deployments
+
+```bash
+# Navigate to k8s directory
+cd k8s
+
+# Deploy to AKS
+./deploy.sh
+
+# Manual deployment
+kubectl apply -k .
+```
+
+## 📊 Deployment Comparison
+
+| Method | Best For | Complexity | Scalability | Production Ready | Multi-Cluster | GitOps | CI/CD |
+|--------|----------|------------|-------------|------------------|---------------|---------|---------|
+| **Docker** | Local Development | ⭐ | ⭐ | ⭐ | ❌ | ❌ | ❌ |
+| **Helm Chart** | Single Cluster | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ |
+| **Multi-Cluster** | Enterprise | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
+| **CI/CD Pipeline** | Automation | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **GitOps** | Production | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| **Raw K8s** | Custom | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ❌ | ❌ |
+
+### Recommended Deployment Path
+
+1. **Development**: Docker → Local testing
+2. **Staging**: Multi-Cluster → CI/CD → GitOps
+3. **Production**: Multi-Cluster → CI/CD + GitOps → Full automation
+
 ## 🌍 Multi-Cluster Deployment
 
 The CAMP platform now supports deployment across multiple Kubernetes clusters with full parameterization:
@@ -881,16 +1105,41 @@ kubectl get ingress -n camp
 
 ## 📚 Documentation
 
+### 📖 Core Documentation
 - **Main Documentation**: This README.md
-- **Docker Guide**: `DOCKER_README.md`
-- **GHCR Setup**: `GHCR_SETUP.md`
-- **AKS Deployment**: `AKS_SETUP.md`
-- **Helm Chart**: `HELM_README.md`
-- **Multi-Cluster Deployment**: `docs/MULTI_CLUSTER_DEPLOYMENT.md`
-- **Backend API**: `http://localhost:8000/docs`
-- **Frontend Guide**: `camp-web-frontend/README.md`
-- **Auth System**: `camp-auth-frontend/README.md`
-- **API Usage**: `camp-web-frontend/API_DOCUMENTATION.md`
+- **Docker Guide**: `DOCKER_README.md` - Docker containerization and local development
+- **GHCR Setup**: `GHCR_SETUP.md` - GitHub Container Registry configuration
+- **AKS Deployment**: `AKS_SETUP.md` - Azure Kubernetes Service deployment guide
+- **Helm Chart**: `HELM_README.md` - Helm chart documentation and usage
+
+### 🌍 Advanced Deployment Guides
+- **Multi-Cluster Deployment**: `docs/MULTI_CLUSTER_DEPLOYMENT.md` - Complete multi-cluster guide
+  - Multi-cloud support (AKS, EKS, GKE, local)
+  - Environment-specific configurations
+  - CI/CD integration
+  - GitOps setup
+  - Troubleshooting and best practices
+
+### 🏗️ Application Documentation
+- **Backend API**: `http://localhost:8000/docs` - Interactive API documentation
+- **Frontend Guide**: `camp-web-frontend/README.md` - Web frontend documentation
+- **Auth System**: `camp-auth-frontend/README.md` - Authentication system guide
+- **API Usage**: `camp-web-frontend/API_DOCUMENTATION.md` - API usage examples
+
+### 📋 Configuration Files
+- **Environment Configs**: `environments/values-*.yaml` - Dev/staging/prod configurations
+- **Cluster Configs**: `clusters/cluster-config.yaml` - Multi-cluster definitions
+- **CI/CD Pipeline**: `ci-cd/github-actions/build-and-deploy.yml` - GitHub Actions workflow
+- **GitOps Manifests**: `gitops/argocd/` and `gitops/flux/` - GitOps configurations
+
+### 🛠️ Script Documentation
+All scripts include comprehensive help and documentation:
+```bash
+./scripts/deploy.sh --help           # Multi-cluster deployment help
+./scripts/cluster-manager.sh --help  # Cluster management help
+./helm/deploy-helm.sh --help        # Helm deployment help
+./k8s/deploy.sh --help            # AKS deployment help
+```
 
 ## 🔄 Integration Flow
 
@@ -981,7 +1230,7 @@ For support and questions:
 
 ---
 
-**Built with ❤️ using FastAPI, Docker, Helm, Kubernetes, CI/CD, GitOps, HTML, CSS, JavaScript, and modern security practices**
+**Built by Elisha Theodore (https://github.com/elisha-theodore) using FastAPI, Docker, Helm, Kubernetes, CI/CD, GitOps, HTML, CSS, JavaScript, and modern security practices**
 
 **Version**: 1.0.0  
 **Last Updated**: 2026-04-05  
