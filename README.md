@@ -110,9 +110,8 @@ kubernetes-microservices/
 │   │   ├── run.py                   # Backend entry point
 │   │   ├── Dockerfile               # Backend container definition
 │   │   ├── .dockerignore            # Docker build exclusions
-│   │   ├── .env                     # Backend environment config
-│   │   ├── camp.db                  # SQLite database (auto-created)
-│   │   ├── uploads/                 # File storage directory
+│   │   ├── .env.example             # Environment config template (copy to .env)
+│   │   ├── uploads/                 # File storage (git-ignored, auto-created)
 │   │   └── app/                     # Application code
 │   │       ├── main.py             # FastAPI application
 │   │       ├── api/                # API routers
@@ -201,9 +200,8 @@ kubernetes-microservices/
 │       └── make-executable.sh       # Setup script
 │
 ├── 🔄 CI/CD Pipelines
-│   └── ci-cd/
-│       └── github-actions/
-│           └── build-and-deploy.yml # GitHub Actions workflow
+│   └── .github/workflows/
+│       └── build-and-deploy.yml # GitHub Actions workflow
 │
 ├── 🚀 GitOps Integration
 │   └── gitops/
@@ -624,18 +622,21 @@ User Browser
 
 ## ⚙️ Configuration
 
-### Environment Variables (.env)
-```env
-DATABASE_URL=sqlite:///./camp.db
-STORAGE_TYPE=local
-LOCAL_STORAGE_PATH=./uploads
-MAX_FILE_SIZE=52428800
-APP_NAME=Cloud Asset Management Platform
-APP_VERSION=1.0.0
-DEBUG=True
-LOG_LEVEL=INFO
-CORS_ORIGINS=["http://localhost:3004", "http://localhost:3000"]
+### Environment Variables
+Copy `.env.example` to `.env` and configure:
+```bash
+cp camp-backend/.env.example camp-backend/.env
 ```
+
+**Key Variables:**
+- `DATABASE_URL` - Database connection string
+- `STORAGE_TYPE` - Storage backend (local/s3/etc.)
+- `LOCAL_STORAGE_PATH` - Upload directory path
+- `MAX_FILE_SIZE` - Maximum file upload size
+- `SECRET_KEY` - Application secret key
+- `JWT_SECRET` - JWT signing secret
+- `DEFAULT_PASSWORD` - Default admin password
+- `CORS_ORIGINS` - Allowed CORS origins
 
 ### Frontend Configuration (config.js)
 ```javascript
