@@ -1230,7 +1230,7 @@ For support and questions:
 
 ---
 
-**Built by Elisha Theodore (https://github.com/elisha-theodore) using FastAPI, Docker, Helm, Kubernetes, CI/CD, GitOps, HTML, CSS, JavaScript, and modern security practices**
+**Built by Elisha Theodore (https://github.com/elishatheodore) using FastAPI, Docker, Helm, Kubernetes, CI/CD, GitOps, HTML, CSS, JavaScript, and modern security practices**
 
 **Version**: 1.0.0  
 **Last Updated**: 2026-04-05  
