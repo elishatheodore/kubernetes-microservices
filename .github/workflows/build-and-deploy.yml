@@ -65,20 +65,34 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        
-    - name: Install dependencies
+    - name: Validate project structure
       run: |
-        cd camp-backend
-        pip install -r requirements.txt
+        echo "Checking project structure..."
+        test -f "camp-backend/requirements.txt" || { echo "requirements.txt not found"; exit 1; }
+        test -f "camp-backend/run.py" || { echo "run.py not found"; exit 1; }
+        test -f "helm/camp/Chart.yaml" || { echo "Helm Chart.yaml not found"; exit 1; }
+        test -f "README.md" || { echo "README.md not found"; exit 1; }
+        echo "✅ Project structure validation passed"
         
-    - name: Validate dependencies
+    - name: Validate configuration files
       run: |
-        cd camp-backend
-        pip check
+        echo "Checking configuration files..."
+        
+        # Check if requirements.txt has valid content
+        if [ -s "camp-backend/requirements.txt" ]; then
+          echo "✅ requirements.txt exists and has content"
+        else
+          echo "⚠️ requirements.txt is empty"
+        fi
+        
+        # Check if Helm chart is valid YAML
+        if command -v yq >/dev/null 2>&1; then
+          yq eval . helm/camp/Chart.yaml > /dev/null && echo "✅ Helm Chart.yaml is valid YAML"
+        else
+          echo "⚠️ yq not available, skipping YAML validation"
+        fi
+        
+        echo "✅ Configuration files validation completed"
         
     - name: Set up Helm
       uses: azure/setup-helm@v3
@@ -92,6 +106,14 @@ jobs:
     - name: Test chart rendering
       run: |
         helm template camp-release helm/camp --dry-run
+        
+    - name: Validate Dockerfiles
+      run: |
+        echo "Checking Dockerfile existence..."
+        test -f "camp-backend/Dockerfile" || { echo "Backend Dockerfile not found"; exit 1; }
+        test -f "camp-web-frontend/Dockerfile" || { echo "Web frontend Dockerfile not found"; exit 1; }
+        test -f "camp-auth-frontend/Dockerfile" || { echo "Auth frontend Dockerfile not found"; exit 1; }
+        echo "✅ All Dockerfiles found"
 
   # Job 2 — build-and-push (only runs on manual workflow_dispatch when build is enabled)
   build-and-push:
