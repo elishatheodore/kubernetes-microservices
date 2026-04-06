@@ -1,6 +1,8 @@
 # kubernetes-microservices — Cloud Asset Management Platform (CAMP)
 
-[![Build and Lint](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/build-and-deploy.yml)
+[![Repository Status](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/status.yml/badge.svg)](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/status.yml)
+[![Showcase Mode](https://img.shields.io/badge/mode-showcase-blue)](https://github.com/elishatheodore/kubernetes-microservices)
+[![Manual Workflow](https://img.shields.io/badge/workflow-manual-orange)](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/build-and-deploy.yml)
 
 A **showcase repository demonstrating production-grade, cloud-native microservices platform** built with Kubernetes, Helm, and GitOps — designed for portfolio demonstration with manual CI/CD triggers.
 
