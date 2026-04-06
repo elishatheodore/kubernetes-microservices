@@ -8,6 +8,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
     inputs:
+      build:
+        description: 'Build and push images'
+        required: false
+        type: boolean
+        default: false
       cluster:
         description: 'Target cluster'
         required: true
@@ -88,15 +93,15 @@ jobs:
       run: |
         helm template camp-release helm/camp --dry-run
 
-  # Job 2 — build-and-push (only runs if secrets exist)
+  # Job 2 — build-and-push (only runs on manual workflow_dispatch when build is enabled)
   build-and-push:
     name: Build and Push
     runs-on: ubuntu-latest
     needs: build-and-lint
     if: >
-      secrets.GHCR_TOKEN != '' &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.build == 'true' &&
+      secrets.GHCR_TOKEN != ''
     permissions:
       contents: read
       packages: write
@@ -190,7 +195,7 @@ jobs:
   deploy:
     name: Deploy to Cluster
     runs-on: ubuntu-latest
-    needs: [build-and-lint, build-and-push]
+    needs: build-and-lint
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
     
     steps:
@@ -249,9 +254,14 @@ jobs:
         IMAGE_TAG="${{ github.event.inputs.image_tag }}"
         NAMESPACE="camp-${ENVIRONMENT}"
         
-        # Use image tag from build if not specified
+        # Use image tag from build if not specified and build was run
         if [[ "$IMAGE_TAG" == "latest" ]]; then
-          IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          # Check if build-and-push job ran and has outputs
+          if [[ "${{ needs.build-and-push.outputs.image-tag }}" != "" ]]; then
+            IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          else
+            IMAGE_TAG="latest"
+          fi
         fi
         
         # Create namespace
