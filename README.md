@@ -2,9 +2,11 @@
 
 [![Build and Lint](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/build-and-deploy.yml/badge.svg)](https://github.com/elishatheodore/kubernetes-microservices/actions/workflows/build-and-deploy.yml)
 
-A **production-grade, cloud-native microservices platform** built with Kubernetes, Helm, and GitOps — deployed on Azure Kubernetes Service (AKS) with full multi-cluster enterprise support.
+A **showcase repository demonstrating production-grade, cloud-native microservices platform** built with Kubernetes, Helm, and GitOps — designed for portfolio demonstration with manual CI/CD triggers.
 
-This project demonstrates end-to-end platform engineering: from containerized application development to automated CI/CD, GitOps delivery, and multi-environment orchestration across AKS, EKS, GKE, and local clusters.
+This project demonstrates end-to-end platform engineering capabilities: from containerized application development to CI/CD pipeline design, GitOps delivery patterns, and multi-environment orchestration across AKS, EKS, GKE, and local clusters.
+
+**⚠️ Showcase Mode**: Build and deploy operations are manual to prevent accidental resource usage in this demonstration repository.
 
 ---
 
@@ -436,31 +438,39 @@ helm get values camp-release -n camp                          # Get current valu
 ## 🔄 CI/CD Pipeline
 
 ### GitHub Actions Workflow Features
-- **Multi-architecture builds** — AMD64 and ARM64 support
-- **Automated testing** and validation
-- **Security scanning** with Trivy
-- **Manual deployment triggers** to any cluster
-- **Automated deployments** for staging and production
-- **Helm chart validation** and testing
+- **Multi-architecture builds** — AMD64 and ARM64 support (manual trigger)
+- **Automated testing** and validation (runs on all triggers)
+- **Security scanning** with Trivy (manual trigger)
+- **Manual deployment triggers** to any cluster (showcase mode)
+- **Helm chart validation** and testing (runs on all triggers)
+- **Portfolio-ready** — No automatic deployments to prevent costs
 
-### Workflow Triggers
-- Push to `main` → Auto-deploy to staging
-- Push to `develop` → Build and test only
-- Tags (`v*`) → Auto-deploy to production
-- Manual dispatch → On-demand deployment to any cluster
+### Workflow Triggers (Showcase Mode)
+- **Automatic**: Build and lint validation on all pushes/PRs
+- **Manual**: Build and push images (requires manual trigger)
+- **Manual**: Deploy to clusters (requires manual trigger)
+- **Manual**: Full workflow with build + deploy (requires manual trigger)
 
 ### Pipeline Stages
-1. **Build & Test** — Multi-architecture Docker builds
-2. **Security Scan** — Vulnerability scanning with Trivy
-3. **Helm Validation** — Chart linting and template testing
-4. **Deploy** — Targeted deployment to specified cluster
-5. **Verify** — Smoke tests and health checks
+1. **Build & Lint** — Always runs, validates code and Helm charts
+2. **Build & Push** — Manual trigger, multi-architecture Docker builds
+3. **Security Scan** — Manual trigger, vulnerability scanning with Trivy
+4. **Deploy** — Manual trigger, targeted deployment to specified cluster
+5. **Verify** — Manual trigger, smoke tests and health checks
 
 ### Manual Deployment via GitHub Actions UI
 1. Go to Actions → "Build and Deploy CAMP Platform"
 2. Click "Run workflow"
-3. Select cluster, environment, and image tag
-4. Enable deployment option
+3. Select options:
+   - **Build**: Enable to build and push images to GHCR
+   - **Cluster**: Target cluster (local-dev, aks-dev, aks-staging, aks-prod)
+   - **Environment**: Target environment (dev, staging, prod)
+   - **Image Tag**: Docker image tag (default: latest)
+   - **Deploy**: Enable to deploy after build
+   - **Dry Run**: Enable to preview deployment without applying
+4. Click "Run workflow" to execute
+
+**Note**: This repository runs in showcase mode to prevent accidental resource usage. Build and deploy operations require manual activation.
 
 ---
 
@@ -511,14 +521,16 @@ For detailed instructions, see [Multi-Cluster Deployment Guide](docs/MULTI_CLUST
 | **Docker** | Local Development | ⭐ | ⭐ | ⭐ | ❌ | ❌ | ❌ |
 | **Helm Chart** | Single Cluster | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐ |
 | **Multi-Cluster** | Enterprise | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ |
-| **CI/CD Pipeline** | Automation | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **CI/CD Pipeline** | Portfolio Demo | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ |
 | **GitOps** | Production | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
 | **Raw K8s** | Custom | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ❌ | ❌ |
 
-### Recommended Deployment Path
+### Recommended Deployment Path (Showcase Mode)
 1. **Development** — Local Python servers → Docker Compose
-2. **Staging** — Helm with dev values → CI/CD pipeline
-3. **Production** — Helm with prod values → Multi-Cluster → Full GitOps automation
+2. **Portfolio Demo** — Manual CI/CD pipeline → Helm validation
+3. **Production** — Helm with prod values → Multi-Cluster → Full GitOps automation (after fork)
+
+**Note**: This repository demonstrates production-ready infrastructure but runs in showcase mode with manual triggers to prevent costs. Fork and configure secrets for full automation.
 
 ---
 
