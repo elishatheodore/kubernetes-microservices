@@ -46,7 +46,7 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ):
-    """Get current authenticated user."""
+    # extract user from token, or return demo user if no token
     # For development, allow requests without authentication
     if token is None:
         return {
@@ -88,17 +88,7 @@ async def upload_file(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Upload a file to the platform.
-    
-    Args:
-        file: File to upload
-        current_user: Current authenticated user
-        db: Database session
-        
-    Returns:
-        AssetResponse: Created asset information
-    """
+    # user uploads a file, we save it and create a db record
     try:
         # Validate file
         if not file.filename:
@@ -109,6 +99,7 @@ async def upload_file(
         
         # Check file type
         content_type = file.content_type or "application/octet-stream"
+        # TODO: consider moving ALLOWED_FILE_TYPES to config or env
         if content_type not in ALLOWED_FILE_TYPES:
             raise UnsupportedFileTypeException(f"File type {content_type} is not supported")
         
@@ -151,16 +142,7 @@ async def list_files(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    List all uploaded files.
-    
-    Args:
-        current_user: Current authenticated user
-        db: Database session
-        
-    Returns:
-        AssetList: List of all assets
-    """
+    # fetch all assets and build response with image URLs
     try:
         asset_service = AssetService(db)
         assets = await asset_service.get_all_assets()
@@ -171,6 +153,7 @@ async def list_files(
         
         for asset in assets:
             # Extract filename from file_path
+            # hacky way to get filename - should probably store this separately
             filename = re.split(r'[\\/]', asset.file_path)[-1] if asset.file_path else None
             image_url = None
             

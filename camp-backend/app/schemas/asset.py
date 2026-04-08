@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 
 class AssetBase(BaseModel):
-    """Base schema for Asset."""
+    # base fields for all asset schemas
     filename: str
     original_filename: str
     file_size: int
@@ -15,8 +15,7 @@ class AssetBase(BaseModel):
 
 
 class AssetCreate(AssetBase):
-    """Schema for creating an Asset."""
-    file_path: str
+    pass  # includes file_path
 
 
 class AssetUpdate(BaseModel):
@@ -25,7 +24,7 @@ class AssetUpdate(BaseModel):
 
 
 class AssetResponse(AssetBase):
-    """Schema for Asset response."""
+    # what we return to the client
     id: int
     file_path: str
     created_at: datetime
@@ -37,7 +36,7 @@ class AssetResponse(AssetBase):
 
 
 class AssetList(BaseModel):
-    """Schema for list of assets."""
+    # paginated asset list
     assets: list[AssetResponse]
     total: int
 

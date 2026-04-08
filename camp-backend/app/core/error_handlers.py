@@ -16,16 +16,7 @@ logger = get_logger(__name__)
 
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    """
-    Handle HTTPException and return consistent error response.
-    
-    Args:
-        request: FastAPI request object
-        exc: HTTPException instance
-        
-    Returns:
-        JSONResponse: Standardized error response
-    """
+    # standard http error - just log and return
     logger.error(f"HTTPException: {exc.status_code} - {exc.detail}")
     
     error_response = ErrorResponse(
@@ -41,16 +32,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
 
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    """
-    Handle FastAPI request validation errors and return consistent error response.
-    
-    Args:
-        request: FastAPI request object
-        exc: RequestValidationError instance
-        
-    Returns:
-        JSONResponse: Standardized validation error response
-    """
+    # validation failed, extract the error details and return them
     logger.error(f"RequestValidationError: {exc.errors()}")
     
     validation_errors = []
@@ -126,6 +108,9 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
         JSONResponse: Standardized error response
     """
     logger.error(f"Unhandled exception: {type(exc).__name__}: {str(exc)}")
+    
+    # TODO: we should probably send this to a monitoring service
+    # for now just dump it to logs
     
     error_response = ErrorResponse(
         error="An internal server error occurred",

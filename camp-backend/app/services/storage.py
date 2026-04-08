@@ -16,17 +16,7 @@ class StorageService(ABC):
     
     @abstractmethod
     async def save_file(self, file_data: BinaryIO, filename: str, content_type: str) -> str:
-        """
-        Save a file to storage.
-        
-        Args:
-            file_data: File data as binary stream
-            filename: Original filename
-            content_type: MIME type of the file
-            
-        Returns:
-            str: Unique file identifier or path
-        """
+        # save file and return unique ID/path
         pass
     
     @abstractmethod
@@ -64,7 +54,7 @@ class LocalStorageService(StorageService):
         self.storage_path.mkdir(parents=True, exist_ok=True)
     
     def _generate_unique_filename(self, original_filename: str) -> str:
-        """Generate a unique filename while preserving extension."""
+        # UUID + extension to avoid collisions
         file_extension = Path(original_filename).suffix
         unique_id = str(uuid.uuid4())
         return f"{unique_id}{file_extension}"
@@ -75,6 +65,7 @@ class LocalStorageService(StorageService):
         file_path = self.storage_path / unique_filename
         
         # Reset file pointer to beginning
+        # this gets reset by the upload handler but just to be safe
         file_data.seek(0)
         
         # Write file to disk
@@ -88,10 +79,12 @@ class LocalStorageService(StorageService):
         try:
             path = Path(file_path)
             if path.exists():
+                # TODO: add audit logging here for compliance
                 path.unlink()
                 return True
             return False
         except Exception:
+            # silently fail - not ideal but doesn't break uploads
             return False
     
     async def file_exists(self, file_path: str) -> bool:
@@ -100,7 +93,7 @@ class LocalStorageService(StorageService):
 
 
 class AzureBlobStorageService(StorageService):
-    """Azure Blob Storage implementation (placeholder for future)."""
+    # TODO: implement when we migrate to Azure
     
     def __init__(self, connection_string: str, container_name: str):
         self.connection_string = connection_string

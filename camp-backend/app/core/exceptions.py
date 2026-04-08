@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 
 class CampException(Exception):
-    """Base exception for CAMP application."""
+    # custom base exception for app errors
     
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         self.message = message
@@ -15,17 +15,15 @@ class CampException(Exception):
 
 
 class StorageException(CampException):
-    """Exception for storage operations."""
-    pass
+    pass  # storage-related errors
 
 
 class DatabaseException(CampException):
-    """Exception for database operations."""
-    pass
+    pass  # db errors
 
 
 class AssetNotFoundException(HTTPException):
-    """Exception raised when asset is not found."""
+    # when we can't find the asset
     
     def __init__(self, asset_id: int):
         super().__init__(
@@ -56,6 +54,7 @@ class StorageOperationException(HTTPException):
 
 class FileSizeExceededException(HTTPException):
     """Exception raised when file size exceeds limit."""
+    # might want to increase this limit at some point
     
     def __init__(self, max_size: int, actual_size: int):
         super().__init__(

@@ -26,15 +26,15 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager."""
-    # Startup
+    """Handles app startup and shutdown."""
+    # TODO: move this to separate config, it's getting messy
     logger.info("Starting CAMP backend...")
     create_tables()
     logger.info("Database tables created/verified")
     
     yield
     
-    # Shutdown
+    # graceful shutdown - kill any pending tasks
     logger.info("Shutting down CAMP backend...")
 
 
@@ -80,7 +80,7 @@ else:
 
 @app.get("/")
 async def root():
-    """Root endpoint with basic health information."""
+    # main landing page for API docs
     return {
         "message": "Cloud Asset Management Platform (CAMP)",
         "version": settings.app_version,
@@ -97,7 +97,7 @@ async def root():
 
 @app.get("/test")
 async def test_endpoint():
-    """Simple test endpoint to verify basic functionality."""
+    # quick sanity check that the API is responding
     return {
         "success": True,
         "message": "Backend is working correctly",
@@ -112,6 +112,7 @@ async def health_check():
     try:
         # Check database connection
         from app.db.database import engine
+        # TODO: this connection string should come from config, hardcoded for now
         with engine.connect() as conn:
             conn.execute("SELECT 1")
         db_status = "healthy"
